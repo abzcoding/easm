@@ -21,5 +21,5 @@ sqlx = { workspace = true }
 dotenvy = { workspace = true }
 
 [[test]]
-name = "utils_test"
-path = "utils_test.rs"
+name = "util_tests"
+path = "util_tests.rs"

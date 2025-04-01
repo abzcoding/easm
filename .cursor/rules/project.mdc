@@ -31,9 +31,7 @@ Cyber Asset Attack Surface Management (CAASM) takes a broader approach, aiming t
 While vulnerability management is a key component of EASM, the latter encompasses a wider scope that includes the initial discovery and ongoing monitoring of the entire external-facing asset landscape. 
 The defining characteristic of EASM is its specific focus on assets that are accessible from the internet and could therefore be exploited by external threat actors.
 
-## 1. Code Organization and Structure
-
-### 1.1. Directory Structure
+## Code Organization and Structure
 
 ```
 easm/
@@ -65,31 +63,58 @@ easm/
 │   │       ├── errors.rs     # API specific error types and conversions
 │   │       └── state.rs      # Application state (e.g., DB pool, config)
 │   │
-│   ├── backend/        # Core business logic, services, domain models
+│   ├── backend/              # Core business logic, services, domain models
 │   │   ├── Cargo.toml
+│   │   ├── tests/            # backend crate unit tests
+│   │   │   ├── asset_service_test.rs
+│   │   │   ├── asset_test.rs
+│   │   │   └── discovery_service_test.rs
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── models/       # Domain models (structs representing DB entities, maybe richer than raw DB rows)
 │   │       │   ├── mod.rs
 │   │       │   ├── asset.rs
+│   │       │   ├── discovery_job.rs
+│   │       │   ├── job_asset_link.rs
+│   │       │   ├── organization.rs
+│   │       │   ├── port.rs
+│   │       │   ├── technology.rs
+│   │       │   ├── user.rs
 │   │       │   └── vulnerability.rs
-│   │       │   └── ...
 │   │       ├── services/     # Business logic layer (e.g., AssetService, VulnerabilityService)
 │   │       │   ├── mod.rs
 │   │       │   ├── asset_service.rs
-│   │       │   └── discovery_service.rs # Logic to orchestrate discovery tasks
+│   │       │   ├── vulnerability_service.rs
+│   │       │   └── discovery_service.rs
 │   │       ├── traits.rs     # Traits defining service/repository interfaces
 │   │       └── errors.rs     # Core business logic errors
 │   │
-│   ├── infrastructure/          # Database interactions (SQLx implementation)
+│   ├── infrastructure/   # Database interactions (SQLx implementation)
 │   │   ├── Cargo.toml
+│   │   ├── tests/            # infrastructure crate tests
+│   │   │   ├── database_test.rs
+│   │   │   ├── migrations_test.rs
+│   │   │   ├── port_repository_test.rs
+│   │   │   ├── repository_factory_test.rs
+│   │   │   ├── technology_repository_test.rs
+│   │   │   └── utils_test.rs
 │   │   └── src/
 │   │       ├── lib.rs        # Module entry, connection pool setup
 │   │       ├── repositories/ # Repository pattern implementations
 │   │       │   ├── mod.rs
-│   │       │   ├── asset_repository.rs
-│   │       │   └── vulnerability_repository.rs
-│   │       │   └── ...
+│   │       │   ├── asset.rs
+│   │       │   ├── discovery_job.rs
+│   │       │   ├── factory.rs
+│   │       │   ├── organization.rs
+│   │       │   ├── port.rs
+│   │       │   ├── technology.rs
+│   │       │   ├── tests.rs
+│   │       │   ├── user.rs
+│   │       │   └── vulnerability.rs
+│   │       ├── utils/
+│   │       │   ├── mod.rs
+│   │       │   └── testing.rs
+│   │       ├── database.rs
 │   │       └── errors.rs     # Database specific errors
 │   │
 │   ├── discovery/   # Modules for specific discovery tasks
@@ -105,6 +130,10 @@ easm/
 │   │
 │   ├── shared/      # Shared types, constants, utilities across crates
 │   │   ├── Cargo.toml
+│   │   ├── tests/            # shared crate unit tests
+│   │   │   ├── config_test.rs
+│   │   │   ├── errors_test.rs
+│   │   │   └── types_test.rs
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── types.rs      # Common enums (e.g., AssetType, Severity, Status)
@@ -125,9 +154,10 @@ easm/
 │           ├── job_processor.rs # Logic to pick up and run jobs (e.g., from DB or queue)
 │           └── ...
 │
-├── tests/    # tests
+├── tests/    # integration tests
 │   ├── Cargo.toml
 │   ├── api_tests.rs
+│   ├── util_tests.rs
 │   ├── database_tests.rs
 │   └── ...
 │
