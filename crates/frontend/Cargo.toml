@@ -1,0 +1,24 @@
+[package]
+name = "frontend"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "frontend"
+path = "src/main.rs"
+
+[dependencies]
+chrono = { workspace = true }
+gloo = { workspace = true }
+js-sys = { workspace = true }
+leptos = { workspace = true }
+leptos_router = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }

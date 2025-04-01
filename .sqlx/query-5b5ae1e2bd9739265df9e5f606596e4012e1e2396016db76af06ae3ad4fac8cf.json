@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    id, asset_id, port_id, title, description, \n                    severity as \"severity: Severity\", status as \"status: VulnerabilityStatus\",\n                    cve_id, cvss_score, evidence, remediation, first_seen, last_seen,\n                    resolved_at, created_at, updated_at\n                FROM vulnerabilities\n                WHERE asset_id = $1\n                ORDER BY severity, title\n                LIMIT $2 OFFSET $3\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "port_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "severity: Severity",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: VulnerabilityStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "cve_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "cvss_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "evidence",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "remediation",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "first_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "last_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "resolved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "5b5ae1e2bd9739265df9e5f606596e4012e1e2396016db76af06ae3ad4fac8cf"
+}

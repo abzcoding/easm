@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE ports\n            SET asset_id = $2, port_number = $3, protocol = $4, service_name = $5, banner = $6, status = $7, first_seen = $8, last_seen = $9, updated_at = $10\n            WHERE id = $1\n            RETURNING id, asset_id, port_number, protocol as \"protocol: Protocol\", service_name, banner, status as \"status: PortStatus\", first_seen, last_seen, created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "port_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "protocol: Protocol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "banner",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: PortStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "first_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4c92f0c94167ba0b03da66ea7dd950c90b8a565069730d8a8311afe6991df870"
+}

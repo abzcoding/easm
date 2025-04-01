@@ -1,0 +1,25 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+api = { path = "../crates/api" }
+backend = { path = "../crates/backend" }
+frontend = { path = "../crates/frontend" }
+infrastructure = { path = "../crates/infrastructure" }
+discovery = { path = "../crates/discovery" }
+shared = { path = "../crates/shared" }
+tasks = { path = "../crates/tasks" }
+
+# Add test dependencies
+#tokio = { version = "1", features = ["full", "test-util", "macros"] }
+tokio = { workspace = true }
+uuid = { workspace = true }
+sqlx = { workspace = true }
+dotenvy = { workspace = true }
+
+[[test]]
+name = "utils_test"
+path = "utils_test.rs"

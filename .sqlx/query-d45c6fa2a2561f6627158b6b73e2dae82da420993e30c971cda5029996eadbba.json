@@ -1,0 +1,127 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO vulnerabilities (\n                id, asset_id, port_id, title, description, severity, status,\n                cve_id, cvss_score, evidence, remediation, first_seen, last_seen,\n                resolved_at, created_at, updated_at\n            )\n            VALUES (\n                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16\n            )\n            RETURNING \n                id, asset_id, port_id, title, description, \n                severity as \"severity: Severity\", status as \"status: VulnerabilityStatus\",\n                cve_id, cvss_score, evidence, remediation, first_seen, last_seen,\n                resolved_at, created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "port_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "severity: Severity",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: VulnerabilityStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "cve_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "cvss_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "evidence",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "remediation",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "first_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "last_seen",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "resolved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Numeric",
+        "Jsonb",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "d45c6fa2a2561f6627158b6b73e2dae82da420993e30c971cda5029996eadbba"
+}

@@ -1,0 +1,29 @@
+# Generated files
+target/
+
+# IDE files
+.idea/
+*.iml
+
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Frontend build artifacts
+dist/
+node_modules/
+
+# macOS specific files
+.DS_Store
+
+# Cargo lock file (uncomment if you want to ignore it)
+# Cargo.lock
+Cargo.lock

@@ -1,0 +1,24 @@
+[package]
+name = "backend"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "backend"
+path = "src/lib.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+async-trait = {workspace = true}
+chrono = { workspace = true}
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+sqlx = { workspace = true }
