@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Project
+# General
 
 - make sure your code doesn't break tests
 - you can run project tests using `cargo test --workspace`

@@ -3,145 +3,15 @@ description:
 globs: 
 alwaysApply: true
 ---
-# External Attack Surface Management
+# Rust Coding
 
-External Attack Surface Management is fundamentally about gaining visibility and control over an organization's publicly accessible digital assets and the potential vulnerabilities associated with them.
-The core objective of EASM is to identify all internet-facing IT assets, thereby enabling organizations to proactively detect and remediate security weaknesses before they can be exploited by malicious actors.
-This practice is increasingly vital as organizations adopt cloud services, engage with third-party vendors, and experience organic growth, often leading to the creation of "shadow IT" or forgotten assets that remain unprotected.
-The external attack surface is a prime target for cyberattacks, making its continuous monitoring and management indispensable for reducing the risk of breaches.
-The process of EASM typically involves several key stages: discovery, inventory, monitoring, and remediation.
-Discovery is the initial phase where all internet-facing assets are identified, regardless of whether they are officially known or managed.
-This often involves employing a combination of reconnaissance techniques and automated scanning to map the organization's digital footprint.
-Once assets are discovered, the next step is inventory, where a comprehensive list of these assets is created, including details such as domain names, IP addresses, open ports, running services, and cloud resources.
-Monitoring follows, which involves continuously observing these assets for any changes, new vulnerabilities, misconfigurations, or other potential security risks that could expose the organization to threats.
-Finally, remediation involves taking appropriate actions to address the identified vulnerabilities and security gaps, often prioritizing them based on their severity and potential impact.
-The effectiveness of an EASM solution hinges on its ability to correlate diverse information about each asset, such as its IP address, the services running on it, and its associated domain name. This holistic view provides a richer understanding of potential attack vectors.
-Implementing an EASM solution offers numerous benefits to an organization's security posture.
-Firstly, it enables asset discovery, helping organizations identify previously unknown or unmanaged assets that could represent significant security blind spots.
-Secondly, it facilitates vulnerability discovery by identifying potential weaknesses in the public-facing infrastructure that attackers could exploit.
-A crucial benefit is risk prioritization, allowing security teams to focus their remediation efforts on the most critical vulnerabilities based on their severity and potential impact on the business.
-Furthermore, EASM can lead to enhanced remediation by validating the effectiveness of security measures taken to address identified issues.
-It also supports governance and compliance efforts by providing the necessary visibility to manage risks associated with sensitive data and adhere to relevant regulations.
-For organizations that rely on third-party vendors, EASM can provide valuable insights into the security risks associated with these interconnected systems, enabling better third-party risk management.
-Ultimately, the implementation of an effective EASM solution contributes to an improved overall security posture by reducing the organization's susceptibility to cyberattacks.
-Additionally, by identifying unused or legacy systems, EASM can also contribute to cost reduction.
-The value of EASM lies in its ability to provide security teams with the necessary context to make informed decisions about which vulnerabilities pose the greatest threat and require immediate attention.
-It is important to distinguish EASM from other related security practices. Internal Attack Surface Management (IASM) focuses on identifying and mitigating threats and vulnerabilities within an organization's internal network, whereas EASM specifically targets assets exposed to the public internet.
-Cyber Asset Attack Surface Management (CAASM) takes a broader approach, aiming to provide a holistic view of both the internal and external attack surfaces by integrating data from various security tools through APIs.
-While vulnerability management is a key component of EASM, the latter encompasses a wider scope that includes the initial discovery and ongoing monitoring of the entire external-facing asset landscape. 
-The defining characteristic of EASM is its specific focus on assets that are accessible from the internet and could therefore be exploited by external threat actors.
-
-## 1. Code Organization and Structure
-
-### 1.1. Directory Structure
-
-```
-easm/
-├── Cargo.toml            # Workspace definition
-├── rust-toolchain.toml
-├── .env                  # Environment variables (DB_URL, etc.) - DO NOT COMMIT secrets
-├── .gitignore
-├── .dockerignore
-├── Dockerfile            # Dockerfile for the project
-├── .sqlx/                # For sqlx offline mode (compile-time checks)
-├── target/               # Cargo output (ignore it)
-├── docs/                 # Project documentation
-├── migrations/           # SQLx migrations directory
-│   └── 20250331180000_initial_schema.sql
-│   └── ...
-├── crates/
-│   ├── api/         # Axum Web Server
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── main.rs       # Entry point, sets up Axum server, logging, state
-│   │       ├── routes.rs     # Defines API routes (e.g., /assets, /vulnerabilities)
-│   │       ├── handlers/     # Request handlers (controllers)
-│   │       │   ├── mod.rs
-│   │       │   ├── asset_handler.rs
-│   │       │   └── vulnerability_handler.rs
-│   │       │   └── ...
-│   │       ├── middleware/   # Custom Axum middleware (auth, logging)
-│   │       │   └── mod.rs
-│   │       ├── errors.rs     # API specific error types and conversions
-│   │       └── state.rs      # Application state (e.g., DB pool, config)
-│   │
-│   ├── backend/        # Core business logic, services, domain models
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── models/       # Domain models (structs representing DB entities, maybe richer than raw DB rows)
-│   │       │   ├── mod.rs
-│   │       │   ├── asset.rs
-│   │       │   └── vulnerability.rs
-│   │       │   └── ...
-│   │       ├── services/     # Business logic layer (e.g., AssetService, VulnerabilityService)
-│   │       │   ├── mod.rs
-│   │       │   ├── asset_service.rs
-│   │       │   └── discovery_service.rs # Logic to orchestrate discovery tasks
-│   │       ├── traits.rs     # Traits defining service/repository interfaces
-│   │       └── errors.rs     # Core business logic errors
-│   │
-│   ├── infrastructure/          # Database interactions (SQLx implementation)
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs        # Module entry, connection pool setup
-│   │       ├── repositories/ # Repository pattern implementations
-│   │       │   ├── mod.rs
-│   │       │   ├── asset_repository.rs
-│   │       │   └── vulnerability_repository.rs
-│   │       │   └── ...
-│   │       └── errors.rs     # Database specific errors
-│   │
-│   ├── discovery/   # Modules for specific discovery tasks
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── dns/          # DNS enumeration logic (e.g., using trust-dns-resolver)
-│   │       ├── port_scan/    # Port scanning logic (e.g., using tokio::net or external tools)
-│   │       ├── web_crawl/    # Web crawling (e.g., using reqwest, scraper)
-│   │       ├── cert_transparency/ # Certificate Transparency log monitoring
-│   │       ├── tasks.rs      # Defines discoverable task types/interfaces
-│   │       └── results.rs    # Structs for discovery results
-│   │
-│   ├── shared/      # Shared types, constants, utilities across crates
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── types.rs      # Common enums (e.g., AssetType, Severity, Status)
-│   │       ├── config.rs     # Configuration structure (loaded via dotenv)
-│   │       └── errors.rs     # Common error definitions (using anyhow/thiserror)
-│   │
-│   ├── frontend/      # Shared types, constants, utilities across crates
-│   │   ├── Cargo.toml
-│   │   ├── Trunk.toml        # Trunk configurations
-│   │   ├── index.html        # main page
-│   │   └── src/
-│   │       └── main.rs
-│   │
-│   └── tasks/ # Separate process/crate for running background jobs
-│       ├── Cargo.toml
-│       └── src/
-│           ├── main.rs       # Worker entry point
-│           ├── job_processor.rs # Logic to pick up and run jobs (e.g., from DB or queue)
-│           └── ...
-│
-├── tests/    # tests
-│   ├── Cargo.toml
-│   ├── api_tests.rs
-│   ├── database_tests.rs
-│   └── ...
-│
-└── README.md
-```
-
-
-### 1.2. File Naming Conventions
+### 1.1. File Naming Conventions
 
 -   Rust source files use the `.rs` extension.
 -   Module files (e.g., `module_a.rs`) should be named after the module they define.
 -   Use snake_case for file names (e.g., `my_module.rs`).
 
-### 1.3. Module Organization
+### 1.2. Module Organization
 
 -   Use modules to organize code into logical units.
 -   Declare modules in `lib.rs` or `main.rs` using the `mod` keyword.
@@ -165,14 +35,14 @@ pub fn my_function() {
 }
 
 
-### 1.4. Component Architecture
+### 1.3. Component Architecture
 
 -   For larger applications, consider using a component-based architecture.
 -   Each component should be responsible for a specific part of the application's functionality.
 -   Components should communicate with each other through well-defined interfaces (traits).
 -   Consider using dependency injection to decouple components and improve testability.
 
-### 1.5. Code Splitting Strategies
+### 1.4. Code Splitting Strategies
 
 -   Split code into smaller, reusable modules.
 -   Use feature flags to conditionally compile code for different platforms or features.
