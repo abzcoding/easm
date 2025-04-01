@@ -27,3 +27,5 @@ node_modules/
 # Cargo lock file (uncomment if you want to ignore it)
 # Cargo.lock
 Cargo.lock
+
+.sqlx/query-*
