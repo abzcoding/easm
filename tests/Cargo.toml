@@ -19,7 +19,18 @@ tokio = { workspace = true }
 uuid = { workspace = true }
 sqlx = { workspace = true }
 dotenvy = { workspace = true }
+hyper = { workspace = true }
+tower = { workspace = true }
+serde_json = { workspace = true }
+axum = { workspace = true }
+http-body-util = { workspace = true }
+tower-service = { workspace = true }
+chrono = { workspace = true }
 
 [[test]]
 name = "util_tests"
 path = "util_tests.rs"
+
+[[test]]
+name = "api_tests"
+path = "api_tests.rs"

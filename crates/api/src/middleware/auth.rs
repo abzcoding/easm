@@ -6,7 +6,8 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use shared::config::Config;
 
@@ -18,6 +19,7 @@ struct Claims {
     pub role: String,        // User role
     pub org: Option<String>, // Organization ID
     pub exp: usize,          // Expiration time
+    pub iat: usize,          // Issued at
 }
 
 /// Authentication middleware
@@ -72,14 +74,34 @@ pub async fn auth_middleware(
 
 /// Generate JWT token for authenticated user
 pub fn generate_token(
-    _user_id: &str,
-    _role: &str,
-    _organization_id: Option<&str>,
-    _config: &Config,
+    user_id: &str,
+    role: &str,
+    organization_id: Option<&str>,
+    config: &Config,
 ) -> Result<String, ApiError> {
-    // This would be implemented in a real application
-    // For now, return an error
-    Err(ApiError::InternalServerError(
-        "Token generation not implemented".to_string(),
-    ))
+    // Calculate expiration time (24 hours from now)
+    let expiration = Utc::now()
+        .checked_add_signed(Duration::hours(24))
+        .expect("valid timestamp")
+        .timestamp() as usize;
+
+    // Calculate issued at time
+    let issued_at = Utc::now().timestamp() as usize;
+
+    // Create the claims
+    let claims = Claims {
+        sub: user_id.to_string(),
+        role: role.to_string(),
+        org: organization_id.map(|id| id.to_string()),
+        exp: expiration,
+        iat: issued_at,
+    };
+
+    // Encode the token
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
+    )
+    .map_err(|e| ApiError::InternalServerError(format!("Token generation error: {}", e)))
 }
