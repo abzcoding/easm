@@ -6,7 +6,7 @@ pub mod state;
 
 use std::net::SocketAddr;
 
-use hyper::server::Server;
+use axum::Server;
 use shared::{config::Config, errors::Result};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;

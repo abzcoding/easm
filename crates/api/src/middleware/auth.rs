@@ -9,7 +9,6 @@ use axum::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use shared::config::Config;
-use tower::Layer;
 
 use crate::{errors::ApiError, state::AppState};
 
@@ -72,24 +71,26 @@ pub async fn auth_middleware<B>(
 }
 
 /// Create auth middleware layer
-pub fn auth<S>() -> axum::middleware::from_fn_with_state<
+pub fn auth<S>(
+    state: Arc<AppState>,
+) -> axum::middleware::from_fn_with_state<
     Arc<AppState>,
     fn(
         State<Arc<AppState>>,
-        Request,
-        Next,
-    ) -> impl std::future::Future<Output = Result<Response, ApiError>>,
+        Request<axum::body::Body>,
+        Next<axum::body::Body>,
+    ) -> impl axum::response::IntoResponse,
     S,
 > {
-    axum::middleware::from_fn_with_state(auth_middleware)
+    axum::middleware::from_fn_with_state(state, auth_middleware)
 }
 
 /// Generate JWT token for authenticated user
 pub fn generate_token(
-    user_id: &str,
-    role: &str,
-    organization_id: Option<&str>,
-    config: &Config,
+    _user_id: &str,
+    _role: &str,
+    _organization_id: Option<&str>,
+    _config: &Config,
 ) -> Result<String, ApiError> {
     // This would be implemented in a real application
     // For now, return an error

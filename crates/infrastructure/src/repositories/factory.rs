@@ -56,4 +56,39 @@ impl RepositoryFactory {
     pub fn discovery_job_repository(&self) -> Arc<dyn DiscoveryJobRepository> {
         Arc::new(PgDiscoveryJobRepository::new(self.pool.clone()))
     }
+
+    /// Create a concrete PgAssetRepository
+    pub fn create_asset_repository(&self, pool: PgPool) -> PgAssetRepository {
+        PgAssetRepository::new(pool)
+    }
+
+    /// Create a concrete PgVulnerabilityRepository
+    pub fn create_vulnerability_repository(&self, pool: PgPool) -> PgVulnerabilityRepository {
+        PgVulnerabilityRepository::new(pool)
+    }
+
+    /// Create a concrete PgOrganizationRepository
+    pub fn create_organization_repository(&self, pool: PgPool) -> PgOrganizationRepository {
+        PgOrganizationRepository::new(pool)
+    }
+
+    /// Create a concrete PgUserRepository
+    pub fn create_user_repository(&self, pool: PgPool) -> PgUserRepository {
+        PgUserRepository::new(pool)
+    }
+
+    /// Create a concrete PgPortRepository
+    pub fn create_port_repository(&self, pool: PgPool) -> PgPortRepository {
+        PgPortRepository::new(pool)
+    }
+
+    /// Create a concrete PgTechnologyRepository
+    pub fn create_technology_repository(&self, pool: PgPool) -> PgTechnologyRepository {
+        PgTechnologyRepository::new(pool)
+    }
+
+    /// Create a concrete PgDiscoveryJobRepository
+    pub fn create_discovery_job_repository(&self, pool: PgPool) -> PgDiscoveryJobRepository {
+        PgDiscoveryJobRepository::new(pool)
+    }
 }
