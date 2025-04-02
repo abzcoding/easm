@@ -90,18 +90,10 @@ mod api_integration_tests {
 
         // Test - Create Asset
         let asset_value = format!("api-test-{}.example.com", Uuid::new_v4());
-        let asset_id = Uuid::new_v4();
-        let now = chrono::Utc::now();
         let create_asset_json = serde_json::json!({
-            "id": asset_id,
             "organization_id": org.id,
             "asset_type": "DOMAIN",
             "value": asset_value,
-            "status": "ACTIVE",
-            "first_seen": now,
-            "last_seen": now,
-            "created_at": now,
-            "updated_at": now,
             "attributes": {}
         });
 
@@ -304,20 +296,15 @@ mod api_integration_tests {
 
         // Test - Create Vulnerability
         let vuln_title = format!("Test Vulnerability {}", Uuid::new_v4());
-        let vuln_id = Uuid::new_v4();
-        let now = chrono::Utc::now();
         let create_vuln_json = serde_json::json!({
-            "id": vuln_id,
             "asset_id": asset.id,
             "title": vuln_title,
             "description": "This is a test vulnerability",
             "severity": "MEDIUM",
-            "status": "OPEN",
-            "evidence": "Test evidence data",
-            "first_seen": now,
-            "last_seen": now,
-            "created_at": now,
-            "updated_at": now
+            "evidence": {
+                "details": "Test evidence data",
+                "found_by": "Integration test"
+            }
         });
 
         let create_response = app
@@ -379,7 +366,6 @@ mod api_integration_tests {
 
         // Test - Update Vulnerability
         let updated_title = format!("Updated {}", vuln_title);
-        let now_update = chrono::Utc::now();
         let update_vuln_json = serde_json::json!({
             "id": vuln.id,
             "asset_id": asset.id,
@@ -391,7 +377,7 @@ mod api_integration_tests {
             "first_seen": vuln.first_seen,
             "last_seen": vuln.last_seen,
             "created_at": vuln.created_at,
-            "updated_at": now_update
+            "updated_at": vuln.updated_at
         });
 
         let update_response = app

@@ -26,6 +26,19 @@ pub struct AssetListResponse {
     total: usize,
 }
 
+/// Request struct for creating a new asset without requiring an ID
+#[derive(Debug, Deserialize)]
+pub struct CreateAssetRequest {
+    /// Organization this asset belongs to
+    pub organization_id: ID,
+    /// Type of asset
+    pub asset_type: AssetType,
+    /// The actual asset identifier (domain, IP, etc.)
+    pub value: String,
+    /// Additional attributes specific to asset type
+    pub attributes: Option<serde_json::Value>,
+}
+
 /// List assets with optional filters
 pub async fn list_assets(
     State(state): State<Arc<AppState>>,
@@ -67,8 +80,16 @@ pub async fn get_asset(
 /// Create a new asset
 pub async fn create_asset(
     State(state): State<Arc<AppState>>,
-    Json(asset): Json<Asset>,
+    Json(asset_request): Json<CreateAssetRequest>,
 ) -> Result<(StatusCode, Json<Asset>)> {
+    // Create asset model from request
+    let asset = Asset::new(
+        asset_request.organization_id,
+        asset_request.asset_type,
+        asset_request.value,
+        asset_request.attributes,
+    );
+
     let created_asset = state.asset_service.create_asset(&asset).await?;
     Ok((StatusCode::CREATED, Json(created_asset)))
 }
