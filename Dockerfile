@@ -19,7 +19,8 @@ COPY tests/Cargo.toml ./tests/
 COPY rust-toolchain.toml ./
 ENV SQLX_OFFLINE=true
 RUN echo 'fn main() {}' > crates/api/src/main.rs && cp crates/api/src/main.rs crates/frontend/src/main.rs && \
-  touch crates/api/src/lib.rs crates/backend/src/lib.rs crates/frontend/src/lib.rs crates/infrastructure/src/lib.rs crates/discovery/src/lib.rs crates/shared/src/lib.rs crates/tasks/src/lib.rs && \
+  cp crates/api/src/main.rs crates/tasks/src/main.rs && \
+  touch crates/api/src/lib.rs crates/backend/src/lib.rs crates/frontend/src/lib.rs crates/infrastructure/src/lib.rs crates/discovery/src/lib.rs crates/shared/src/lib.rs && \
   cargo build --release --workspace
 
 FROM deps AS build
