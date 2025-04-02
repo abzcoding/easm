@@ -52,7 +52,7 @@ pub async fn auth_middleware(
     let token = &auth_header["Bearer ".len()..];
 
     // Validate token
-    let claims = match decode::<Claims>(
+    let _claims = match decode::<Claims>(
         token,
         &DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
         &Validation::default(),

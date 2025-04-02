@@ -62,7 +62,7 @@ async fn test_health_endpoint() {
 
 // Mock services for testing
 #[derive(Clone)]
-struct MockAssetService;
+pub struct MockAssetService;
 
 #[async_trait]
 impl backend::AssetService for MockAssetService {
@@ -104,7 +104,7 @@ impl backend::AssetService for MockAssetService {
 }
 
 #[derive(Clone)]
-struct MockVulnerabilityService;
+pub struct MockVulnerabilityService;
 
 #[async_trait]
 impl backend::VulnerabilityService for MockVulnerabilityService {
@@ -148,7 +148,7 @@ impl backend::VulnerabilityService for MockVulnerabilityService {
 }
 
 #[derive(Clone)]
-struct MockDiscoveryService;
+pub struct MockDiscoveryService;
 
 #[async_trait]
 impl backend::DiscoveryService for MockDiscoveryService {

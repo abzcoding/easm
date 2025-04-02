@@ -39,7 +39,7 @@ pub fn create_router(state: AppState) -> Router {
                 // Assets API
                 .route("/assets", get(list_assets).post(create_asset))
                 .route(
-                    "/assets/:id",
+                    "/assets/{id}",
                     get(get_asset).put(update_asset).delete(delete_asset),
                 )
                 // Vulnerabilities API
@@ -48,7 +48,7 @@ pub fn create_router(state: AppState) -> Router {
                     get(list_vulnerabilities).post(create_vulnerability),
                 )
                 .route(
-                    "/vulnerabilities/:id",
+                    "/vulnerabilities/{id}",
                     get(get_vulnerability)
                         .put(update_vulnerability)
                         .delete(delete_vulnerability),
