@@ -38,20 +38,22 @@ impl AppState {
             None
         };
 
-        // Create service instances - using concrete repository types, not Arc<dyn Repository>
-        let asset_repo = repo_factory.asset_repository();
-        let vulnerability_repo = repo_factory.vulnerability_repository();
+        // The unused variables are marked with _ to avoid warnings
+        let _asset_repo = repo_factory.asset_repository();
+        let _vulnerability_repo = repo_factory.vulnerability_repository();
 
-        // Extract concrete repository types from the Arc
-        let asset_repo_impl = repo_factory.create_asset_repository(db_pool.clone());
-        let vulnerability_repo_impl = repo_factory.create_vulnerability_repository(db_pool.clone());
+        // Create separate repository instances for each service
+        let asset_service_repo = repo_factory.create_asset_repository(db_pool.clone());
+        let vulnerability_repo = repo_factory.create_vulnerability_repository(db_pool.clone());
+        let discovery_service_repo = repo_factory.create_asset_repository(db_pool.clone());
 
         // Create services
-        let asset_service: Arc<dyn AssetService> = Arc::new(AssetServiceImpl::new(asset_repo_impl));
+        let asset_service: Arc<dyn AssetService> =
+            Arc::new(AssetServiceImpl::new(asset_service_repo));
         let vulnerability_service: Arc<dyn VulnerabilityService> =
-            Arc::new(VulnerabilityServiceImpl::new(vulnerability_repo_impl));
+            Arc::new(VulnerabilityServiceImpl::new(vulnerability_repo));
         let discovery_service: Arc<dyn DiscoveryService> =
-            Arc::new(DiscoveryServiceImpl::new(asset_repo_impl));
+            Arc::new(DiscoveryServiceImpl::new(discovery_service_repo));
 
         Ok(Self {
             config: config.clone(),

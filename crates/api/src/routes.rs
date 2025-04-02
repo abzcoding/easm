@@ -1,8 +1,4 @@
-use axum::{
-    middleware::map_response_with_state,
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use std::sync::Arc;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -18,7 +14,6 @@ use crate::{
             update_vulnerability,
         },
     },
-    middleware::auth::auth,
     state::AppState,
 };
 

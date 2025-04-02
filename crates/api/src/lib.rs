@@ -6,7 +6,6 @@ pub mod state;
 
 use std::net::SocketAddr;
 
-use axum::Server;
 use shared::{config::Config, errors::Result};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
@@ -31,8 +30,12 @@ pub async fn run(config: Config) -> Result<()> {
 
     // Start the server
     tracing::info!("Listening on {}", addr);
-    Server::bind(&addr)
-        .serve(app.into_make_service())
+
+    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
+        shared::errors::Error::external_service(format!("Failed to bind to address: {}", e))
+    })?;
+
+    axum::serve(listener, app)
         .await
         .map_err(|e| shared::errors::Error::external_service(format!("Server error: {}", e)))?;
 

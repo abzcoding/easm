@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Request, State},
-    http::{header, StatusCode},
+    http::header,
     middleware::Next,
     response::Response,
 };
@@ -21,10 +21,10 @@ struct Claims {
 }
 
 /// Authentication middleware
-pub async fn auth_middleware<B>(
+pub async fn auth_middleware(
     State(state): State<Arc<AppState>>,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request,
+    next: Next,
 ) -> Result<Response, ApiError> {
     // Skip auth for health check endpoint
     if req.uri().path() == "/health" {
@@ -68,21 +68,6 @@ pub async fn auth_middleware<B>(
 
     // Continue to the next handler
     Ok(next.run(req).await)
-}
-
-/// Create auth middleware layer
-pub fn auth<S>(
-    state: Arc<AppState>,
-) -> axum::middleware::from_fn_with_state<
-    Arc<AppState>,
-    fn(
-        State<Arc<AppState>>,
-        Request<axum::body::Body>,
-        Next<axum::body::Body>,
-    ) -> impl axum::response::IntoResponse,
-    S,
-> {
-    axum::middleware::from_fn_with_state(state, auth_middleware)
 }
 
 /// Generate JWT token for authenticated user

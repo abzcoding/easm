@@ -17,6 +17,7 @@ axum-extra = { workspace = true }
 chrono = { workspace = true }
 backend = { path = "../backend" }
 hyper = { workspace = true }
+hyper-util = { workspace = true }
 infrastructure = { path = "../infrastructure" }
 jsonwebtoken = { workspace = true }
 redis = { workspace = true }
@@ -31,3 +32,6 @@ tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
+http-body-util.workspace = true
+tower-service = { workspace = true}
+anyhow = { workspace = true }
