@@ -163,3 +163,29 @@ easm/
 │
 └── README.md
 ```
+
+## Rust Crates
+
+- Use `axum` as backend(API) framework.
+- Leverage `tower-http` middlewares and `axum-extra` to enahance axum.
+- Use `serde` and `serde_json` for serialization/deserialization.
+- Use `sqlx` for async database interactions.
+- Use `leptos`, `gloo`, `leptos_router`, `wasm-bindgen` and `web-sys` for frontend development.
+- Use `tokio` for async runtime and task management.
+- Use `anyhow` or `thiserror` for error handling.
+- Use `proptest` or `quickcheck` for testing when possible.
+- Use `argon2` for password hashing.
+- Use `clap` as CLI framework.
+- Use `dotenv` for configuration management(environment variables).
+- Leverage `reqwest` for async HTTP requests.
+- Leverage `fastrace` for tracing
+- Leverage `chrono` for date & time.
+- Utilize `tonic` for gRPC with async support.
+- Utilize `tokio-tungstenite` for websockets if needed.
+- Utilize `redis-rs` for caching if needed.
+- Utilize `zlib-rs` for compression if needed.
+- Utilize `rustls` for TLS if needed.
+- Utilize `rust-rdkafka` to communicate with message queues if needed.
+- Utilize `indicatif` if you need progress bars.
+- Utilize `termcolor` if you need color in CLI.
+- Utilize `inquire` if you need interactive prompts.
