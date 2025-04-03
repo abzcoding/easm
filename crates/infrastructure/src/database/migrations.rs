@@ -1,4 +1,4 @@
-use shared::errors::{Error, Result};
+use shared::errors::{AppError, Result};
 use sqlx::{migrate::MigrateDatabase, Pool, Postgres};
 use tracing::info;
 
@@ -22,7 +22,7 @@ impl Migrator {
         sqlx::query("SELECT 1")
             .execute(&self.pool)
             .await
-            .map_err(|e| Error::database(format!("Failed to connect to database: {}", e)))?;
+            .map_err(|e| AppError::database(format!("Failed to connect to database: {}", e)))?;
 
         info!("Database connection successful, applying migrations");
 
@@ -39,7 +39,7 @@ impl Migrator {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| {
-            Error::database(format!("Failed to check if migrations table exists: {}", e))
+            AppError::database(format!("Failed to check if migrations table exists: {}", e))
         })?;
 
         // Create migrations table if it doesn't exist
@@ -59,7 +59,7 @@ impl Migrator {
             )
             .execute(&self.pool)
             .await
-            .map_err(|e| Error::database(format!("Failed to create migrations table: {}", e)))?;
+            .map_err(|e| AppError::database(format!("Failed to create migrations table: {}", e)))?;
         }
 
         // Check if the migration has already been applied
@@ -74,7 +74,7 @@ impl Migrator {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| Error::database(format!("Failed to check migration status: {}", e)))?;
+        .map_err(|e| AppError::database(format!("Failed to check migration status: {}", e)))?;
 
         // If the migration is already applied, we're done
         if migration_applied {
@@ -108,7 +108,7 @@ impl Migrator {
                 .execute(&mut *tx)
                 .await
                 .map_err(|e| {
-                    Error::database(format!(
+                    AppError::database(format!(
                         "Failed to apply statement: {} - Error: {}",
                         statement, e
                     ))
@@ -131,7 +131,7 @@ impl Migrator {
         .bind(0_i64) // Simple execution time placeholder
         .execute(&mut *tx)
         .await
-        .map_err(|e| Error::database(format!("Failed to record migration: {}", e)))?;
+        .map_err(|e| AppError::database(format!("Failed to record migration: {}", e)))?;
 
         // Commit the transaction
         tx.commit().await?;

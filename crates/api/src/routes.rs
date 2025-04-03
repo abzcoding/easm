@@ -18,6 +18,7 @@ use crate::{
             create_organization, delete_organization, get_organization, list_organizations,
             update_organization,
         },
+        report_handler,
         vulnerability_handler::{
             correlate_vulnerabilities, create_vulnerability, delete_vulnerability,
             find_similar_vulnerabilities, get_vulnerability, list_vulnerabilities,
@@ -125,6 +126,16 @@ pub fn create_router(state: AppState) -> Router {
                     "/vulnerabilities/{id}/similar",
                     get(find_similar_vulnerabilities),
                 )
+                // Reports
+                .route(
+                    "/reports/vulnerabilities",
+                    get(report_handler::generate_vulnerability_report),
+                )
+                .route(
+                    "/reports/assets",
+                    get(report_handler::generate_asset_report),
+                )
+                .route("/reports/:report_id", get(report_handler::download_report))
                 // Apply authentication middleware to all routes under /api
                 .route_layer(from_fn_with_state(state.clone(), auth_middleware)),
         )

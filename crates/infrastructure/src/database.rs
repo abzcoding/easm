@@ -1,6 +1,6 @@
 pub mod migrations;
 
-use shared::errors::{Error, Result};
+use shared::errors::{AppError, Result};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::info;
 
@@ -19,7 +19,7 @@ impl Database {
             .max_connections(max_connections)
             .connect(database_url)
             .await
-            .map_err(|e| Error::database(format!("Failed to connect to database: {}", e)))?;
+            .map_err(|e| AppError::database(format!("Failed to connect to database: {}", e)))?;
 
         info!("Connected to database");
 
@@ -31,7 +31,7 @@ impl Database {
         sqlx::query("SELECT 1")
             .execute(&self.pool)
             .await
-            .map_err(|e| Error::database(format!("Database check failed: {}", e)))?;
+            .map_err(|e| AppError::database(format!("Database check failed: {}", e)))?;
 
         Ok(())
     }

@@ -1,4 +1,4 @@
-use shared::Error as SharedError;
+use shared::errors::AppError as SharedError;
 use sqlx;
 use thiserror::Error;
 

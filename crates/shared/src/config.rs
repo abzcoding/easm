@@ -100,6 +100,15 @@ pub enum ConfigError {
 
     #[error("Invalid value for environment variable: {0}")]
     InvalidValue(&'static str),
+
+    #[error("Configuration error: {0}")]
+    Custom(String),
+}
+
+impl ConfigError {
+    pub fn new<S: AsRef<str>>(message: S) -> Self {
+        ConfigError::Custom(message.as_ref().to_string())
+    }
 }
 
 pub type ConfigResult<T> = Result<T, ConfigError>;

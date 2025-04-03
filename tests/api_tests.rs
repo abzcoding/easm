@@ -631,4 +631,78 @@ mod api_integration_tests {
 
         assert_eq!(bad_request_response.status(), StatusCode::BAD_REQUEST);
     }
+
+    #[tokio::test]
+    async fn test_report_generation() {
+        // Arrange
+        let app = setup_test_router().await;
+        let token = authenticate_test_user(&app).await;
+
+        // Test vulnerability report generation
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/reports/vulnerabilities")
+                    .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let report: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        // Verify the report structure
+        assert!(report.get("report_id").is_some());
+        assert!(report.get("generated_at").is_some());
+        assert!(report.get("total_vulnerabilities").is_some());
+        assert!(report.get("severity_counts").is_some());
+        assert!(report.get("status_counts").is_some());
+
+        // Test asset report generation
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/reports/assets")
+                    .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let report: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        // Verify the asset report structure
+        assert!(report.get("report_id").is_some());
+        assert!(report.get("generated_at").is_some());
+        assert!(report.get("total_assets").is_some());
+        assert!(report.get("asset_type_counts").is_some());
+        assert!(report.get("recently_discovered_assets").is_some());
+
+        // Test report download
+        let report_id = report["report_id"].as_str().unwrap();
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&format!("/api/reports/{}", report_id))
+                    .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

@@ -7,7 +7,7 @@ mod technology;
 mod user;
 mod vulnerability;
 
-pub use asset::Asset;
+pub use asset::{Asset, AssetRelationship, AssetRelationshipType};
 pub use discovery_job::DiscoveryJob;
 pub use job_asset_link::JobAssetLink;
 pub use organization::Organization;

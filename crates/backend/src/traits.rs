@@ -11,6 +11,8 @@ use crate::{
     Result,
 };
 
+use std::collections::HashMap;
+
 #[async_trait]
 pub trait OrganizationRepository: Send + Sync + 'static {
     async fn create_organization(&self, organization: &Organization) -> Result<Organization>;
@@ -285,6 +287,36 @@ pub trait AssetService: Send + Sync + 'static {
         asset_type: Option<AssetType>,
         status: Option<AssetStatus>,
     ) -> Result<usize>;
+
+    /// Create a relationship between two assets
+    async fn create_asset_relationship(
+        &self,
+        source_asset_id: ID,
+        target_asset_id: ID,
+        relationship_type: String,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<bool>;
+
+    /// Delete a relationship between two assets
+    async fn delete_asset_relationship(
+        &self,
+        source_asset_id: ID,
+        target_asset_id: ID,
+        relationship_type: String,
+    ) -> Result<bool>;
+
+    /// Get all related assets for a given asset
+    async fn get_related_assets(
+        &self,
+        asset_id: ID,
+        relationship_type: Option<String>,
+    ) -> Result<Vec<(Asset, String)>>;
+
+    /// Find potential relationships between assets
+    async fn discover_asset_relationships(
+        &self,
+        organization_id: ID,
+    ) -> Result<Vec<(ID, ID, String)>>;
 }
 
 #[async_trait]
@@ -329,6 +361,19 @@ pub trait VulnerabilityService: Send + Sync + 'static {
         vulnerability_id: ID,
         limit: usize,
     ) -> Result<Vec<Vulnerability>>;
+
+    /// Update vulnerability status in bulk for easier management
+    async fn bulk_update_vulnerability_status(
+        &self,
+        vulnerability_ids: Vec<ID>,
+        status: VulnerabilityStatus,
+    ) -> Result<usize>;
+
+    /// Get vulnerability statistics for an organization
+    async fn get_vulnerability_statistics(
+        &self,
+        organization_id: ID,
+    ) -> Result<std::collections::HashMap<String, usize>>;
 }
 
 #[async_trait]
@@ -339,4 +384,62 @@ pub trait OrganizationService: Send + Sync + 'static {
     async fn delete_organization(&self, id: ID) -> Result<bool>;
     async fn list_organizations(&self, limit: usize, offset: usize) -> Result<Vec<Organization>>;
     async fn count_organizations(&self) -> Result<usize>;
+}
+
+/// Service for sending notifications about findings and changes
+#[async_trait]
+pub trait NotificationService: Send + Sync + 'static {
+    /// Send a notification about a new vulnerability
+    async fn notify_new_vulnerability(&self, vulnerability: &Vulnerability) -> Result<bool>;
+
+    /// Send a notification about a vulnerability status change
+    async fn notify_vulnerability_status_change(
+        &self,
+        vulnerability: &Vulnerability,
+        old_status: VulnerabilityStatus,
+    ) -> Result<bool>;
+
+    /// Send a notification about a new critical asset discovery
+    async fn notify_new_critical_asset(&self, asset: &Asset) -> Result<bool>;
+
+    /// Send a summary report notification
+    async fn send_summary_report(
+        &self,
+        organization_id: ID,
+        period: NotificationPeriod,
+    ) -> Result<bool>;
+
+    /// Get notification settings for an organization
+    async fn get_notification_settings(&self, organization_id: ID) -> Result<NotificationSettings>;
+
+    /// Update notification settings for an organization
+    async fn update_notification_settings(
+        &self,
+        organization_id: ID,
+        settings: &NotificationSettings,
+    ) -> Result<NotificationSettings>;
+}
+
+/// Period for notification reporting
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NotificationPeriod {
+    Daily,
+    Weekly,
+    Monthly,
+}
+
+/// Settings for notifications
+#[derive(Debug, Clone)]
+pub struct NotificationSettings {
+    pub organization_id: ID,
+    pub email_notifications: bool,
+    pub email_recipients: Vec<String>,
+    pub webhook_notifications: bool,
+    pub webhook_url: Option<String>,
+    pub notification_period: NotificationPeriod,
+    pub notify_on_new_vulnerability: bool,
+    pub notify_on_status_change: bool,
+    pub notify_on_new_critical_asset: bool,
+    pub minimum_severity_for_notification: Severity,
+    pub additional_settings: Option<HashMap<String, serde_json::Value>>,
 }
