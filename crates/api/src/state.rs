@@ -53,9 +53,11 @@ impl AppState {
         // Create services
         let user_service: Arc<dyn UserService> =
             Arc::new(UserServiceImpl::new(user_repo, organization_repo.clone()));
-        let asset_service: Arc<dyn AssetService> = Arc::new(AssetServiceImpl::new(asset_repo));
-        let vulnerability_service: Arc<dyn VulnerabilityService> =
-            Arc::new(VulnerabilityServiceImpl::new(vulnerability_repo));
+        let asset_service: Arc<dyn AssetService> =
+            Arc::new(AssetServiceImpl::new(asset_repo.clone()));
+        let vulnerability_service: Arc<dyn VulnerabilityService> = Arc::new(
+            VulnerabilityServiceImpl::new(vulnerability_repo, asset_repo),
+        );
         let discovery_service: Arc<dyn DiscoveryService> =
             Arc::new(DiscoveryServiceImpl::new(discovery_asset_repo));
         let organization_service: Arc<dyn OrganizationService> =

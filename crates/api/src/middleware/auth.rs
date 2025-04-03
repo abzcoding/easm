@@ -9,13 +9,13 @@ use axum::{
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use shared::config::Config;
+use shared::{config::Config, types::UserRole};
 use uuid::Uuid;
 
 use crate::{errors::ApiError, state::AppState};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
     pub sub: String,         // Subject (user ID)
     pub role: String,        // User role
     pub org: Option<String>, // Organization ID
@@ -26,10 +26,35 @@ struct Claims {
     pub jti: String,         // JWT ID (for token revocation)
 }
 
+impl Claims {
+    /// Get the user ID from claims
+    pub fn user_id(&self) -> Result<Uuid, ApiError> {
+        Uuid::parse_str(&self.sub).map_err(|_| ApiError::InvalidToken)
+    }
+
+    /// Get the user role from claims
+    pub fn user_role(&self) -> Result<UserRole, ApiError> {
+        self.role
+            .parse::<UserRole>()
+            .map_err(|_| ApiError::InvalidToken)
+    }
+
+    /// Get the organization ID from claims
+    pub fn organization_id(&self) -> Result<Option<Uuid>, ApiError> {
+        if let Some(org) = &self.org {
+            Ok(Some(
+                Uuid::parse_str(org).map_err(|_| ApiError::InvalidToken)?,
+            ))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 /// Authentication middleware
 pub async fn auth_middleware(
     State(state): State<Arc<AppState>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response, ApiError> {
     // Skip auth for health check endpoint
@@ -58,12 +83,12 @@ pub async fn auth_middleware(
     validation.set_audience(&["easm-client"]);
 
     // Validate token
-    let _claims = match decode::<Claims>(
+    let token_data = match decode::<Claims>(
         token,
         &DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
         &validation,
     ) {
-        Ok(claims) => claims.claims,
+        Ok(claims) => claims,
         Err(e) => match e.kind() {
             jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
                 return Err(ApiError::TokenExpired)
@@ -72,7 +97,65 @@ pub async fn auth_middleware(
         },
     };
 
+    // Add claims to request extensions
+    req.extensions_mut().insert(token_data.claims.clone());
+
     // Continue to the next handler
+    Ok(next.run(req).await)
+}
+
+/// Authorized middleware to check if user has specific permissions
+pub async fn require_admin(req: Request, next: Next) -> Result<Response, ApiError> {
+    check_role(req, next, |role| role.can_admin()).await
+}
+
+/// Middleware to check if user can manage users
+pub async fn require_user_management(req: Request, next: Next) -> Result<Response, ApiError> {
+    check_role(req, next, |role| role.can_manage_users()).await
+}
+
+/// Middleware to check if user can modify assets
+pub async fn require_asset_modification(req: Request, next: Next) -> Result<Response, ApiError> {
+    check_role(req, next, |role| role.can_modify_assets()).await
+}
+
+/// Middleware to check if user can modify vulnerabilities
+pub async fn require_vulnerability_modification(
+    req: Request,
+    next: Next,
+) -> Result<Response, ApiError> {
+    check_role(req, next, |role| role.can_modify_vulnerabilities()).await
+}
+
+/// Middleware to check if user can run discovery
+pub async fn require_discovery_permission(req: Request, next: Next) -> Result<Response, ApiError> {
+    check_role(req, next, |role| role.can_run_discovery()).await
+}
+
+/// Generic role check helper
+async fn check_role<F>(req: Request, next: Next, check_fn: F) -> Result<Response, ApiError>
+where
+    F: FnOnce(UserRole) -> bool,
+{
+    // Get claims from extensions
+    let claims = req
+        .extensions()
+        .get::<Claims>()
+        .ok_or(ApiError::Unauthorized)?
+        .clone();
+
+    // Parse the role
+    let role = claims
+        .role
+        .parse::<UserRole>()
+        .map_err(|_| ApiError::InvalidToken)?;
+
+    // Check if the role has the required permission
+    if !check_fn(role) {
+        return Err(ApiError::Forbidden);
+    }
+
+    // Continue to next handler
     Ok(next.run(req).await)
 }
 

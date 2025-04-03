@@ -363,6 +363,56 @@ impl backend::VulnerabilityService for MockVulnerabilityService {
         // Return a fixed count
         Ok(2)
     }
+
+    async fn correlate_vulnerabilities(
+        &self,
+        _organization_id: ID,
+        _min_severity: Option<Severity>,
+    ) -> Result<std::collections::HashMap<ID, Vec<ID>>> {
+        // Return mock correlation data
+        let id1 = Uuid::new_v4();
+        let id2 = Uuid::new_v4();
+        let id3 = Uuid::new_v4();
+
+        let mut correlations = std::collections::HashMap::new();
+        correlations.insert(id1, vec![id2]);
+        correlations.insert(id2, vec![id1, id3]);
+        correlations.insert(id3, vec![id2]);
+
+        Ok(correlations)
+    }
+
+    async fn find_similar_vulnerabilities(
+        &self,
+        _vulnerability_id: ID,
+        _limit: usize,
+    ) -> Result<Vec<Vulnerability>> {
+        // Return a list of mock similar vulnerabilities
+        let now = chrono::Utc::now();
+        let asset_id = Uuid::new_v4();
+
+        Ok(vec![Vulnerability {
+            id: Uuid::new_v4(),
+            asset_id,
+            port_id: Some(Uuid::new_v4()),
+            title: "Similar SQL Injection".to_string(),
+            description: Some("A similar SQL injection vulnerability".to_string()),
+            severity: Severity::High,
+            status: VulnerabilityStatus::Open,
+            cve_id: Some("CVE-2022-1234".to_string()),
+            cvss_score: Some(8.5),
+            evidence: serde_json::json!({
+                "request": "GET /search?q=1' OR 1=1",
+                "response": "Database error"
+            }),
+            remediation: Some("Parameterize SQL queries".to_string()),
+            first_seen: now,
+            last_seen: now,
+            resolved_at: None,
+            created_at: now,
+            updated_at: now,
+        }])
+    }
 }
 
 #[async_trait]

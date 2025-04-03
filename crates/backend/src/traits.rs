@@ -274,6 +274,21 @@ pub trait VulnerabilityService: Send + Sync + 'static {
         severity: Option<Severity>,
         status: Option<VulnerabilityStatus>,
     ) -> Result<usize>;
+
+    /// Correlate vulnerabilities across assets based on common patterns
+    /// Returns a map of vulnerability IDs to related vulnerability IDs
+    async fn correlate_vulnerabilities(
+        &self,
+        organization_id: ID,
+        min_severity: Option<Severity>,
+    ) -> Result<std::collections::HashMap<ID, Vec<ID>>>;
+
+    /// Find similar vulnerabilities for a specific vulnerability
+    async fn find_similar_vulnerabilities(
+        &self,
+        vulnerability_id: ID,
+        limit: usize,
+    ) -> Result<Vec<Vulnerability>>;
 }
 
 #[async_trait]

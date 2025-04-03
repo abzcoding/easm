@@ -1,4 +1,8 @@
-use axum::{middleware::from_fn_with_state, routing::get, Router};
+use axum::{
+    middleware::from_fn_with_state,
+    routing::{get, post},
+    Router,
+};
 use std::sync::Arc;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -15,11 +19,15 @@ use crate::{
             update_organization,
         },
         vulnerability_handler::{
-            create_vulnerability, delete_vulnerability, get_vulnerability, list_vulnerabilities,
+            correlate_vulnerabilities, create_vulnerability, delete_vulnerability,
+            find_similar_vulnerabilities, get_vulnerability, list_vulnerabilities,
             update_vulnerability,
         },
     },
-    middleware::auth::auth_middleware,
+    middleware::auth::{
+        auth_middleware, require_admin, require_asset_modification, require_user_management,
+        require_vulnerability_modification,
+    },
     state::AppState,
 };
 
@@ -39,40 +47,86 @@ pub fn create_router(state: AppState) -> Router {
         // Health check endpoint (no auth)
         .route("/health", get(health_check))
         // Auth routes (NO middleware)
-        .route("/api/auth/register", axum::routing::post(register))
-        .route("/api/auth/login", axum::routing::post(login))
-        // Protected routes - apply auth middleware to these routes
+        .route("/api/auth/register", post(register))
+        .route("/api/auth/login", post(login))
+        // Protected routes with authentication
         .nest(
             "/api",
             Router::new()
+                // Organization management - admin or manager only
+                .route("/organizations", get(list_organizations))
                 .route(
                     "/organizations",
-                    get(list_organizations).post(create_organization),
+                    post(create_organization)
+                        .route_layer(from_fn_with_state(state.clone(), require_admin)),
+                )
+                .route("/organizations/{id}", get(get_organization))
+                .route(
+                    "/organizations/{id}",
+                    axum::routing::put(update_organization)
+                        .route_layer(from_fn_with_state(state.clone(), require_user_management)),
                 )
                 .route(
                     "/organizations/{id}",
-                    get(get_organization)
-                        .put(update_organization)
-                        .delete(delete_organization),
+                    axum::routing::delete(delete_organization)
+                        .route_layer(from_fn_with_state(state.clone(), require_admin)),
                 )
-                // Assets API
-                .route("/assets", get(list_assets).post(create_asset))
+                // Assets API - different permissions for different actions
+                .route("/assets", get(list_assets))
+                .route(
+                    "/assets",
+                    post(create_asset).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
+                )
+                .route("/assets/{id}", get(get_asset))
                 .route(
                     "/assets/{id}",
-                    get(get_asset).put(update_asset).delete(delete_asset),
+                    axum::routing::put(update_asset).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
                 )
-                // Vulnerabilities API
+                .route(
+                    "/assets/{id}",
+                    axum::routing::delete(delete_asset).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
+                )
+                // Vulnerabilities API - different permissions for different actions
+                .route("/vulnerabilities", get(list_vulnerabilities))
                 .route(
                     "/vulnerabilities",
-                    get(list_vulnerabilities).post(create_vulnerability),
+                    post(create_vulnerability).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_vulnerability_modification,
+                    )),
+                )
+                .route("/vulnerabilities/{id}", get(get_vulnerability))
+                .route(
+                    "/vulnerabilities/{id}",
+                    axum::routing::put(update_vulnerability).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_vulnerability_modification,
+                    )),
                 )
                 .route(
                     "/vulnerabilities/{id}",
-                    get(get_vulnerability)
-                        .put(update_vulnerability)
-                        .delete(delete_vulnerability),
+                    axum::routing::delete(delete_vulnerability).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_vulnerability_modification,
+                    )),
                 )
-                .layer(from_fn_with_state(state.clone(), auth_middleware)),
+                // Vulnerability correlation endpoints - available to all authenticated users
+                .route("/vulnerabilities/correlate", get(correlate_vulnerabilities))
+                .route(
+                    "/vulnerabilities/{id}/similar",
+                    get(find_similar_vulnerabilities),
+                )
+                // Apply authentication middleware to all routes under /api
+                .route_layer(from_fn_with_state(state.clone(), auth_middleware)),
         )
         // Add state
         .with_state(state)

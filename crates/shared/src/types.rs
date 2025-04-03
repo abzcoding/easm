@@ -93,8 +93,10 @@ pub enum JobStatus {
 #[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum UserRole {
-    Admin,
-    Analyst,
+    Admin,    // Full access
+    Manager,  // Org-wide access, can manage users and assets
+    Analyst,  // Can view and add findings
+    ReadOnly, // Read-only access
 }
 
 // Implement FromStr for UserRole
@@ -104,9 +106,52 @@ impl std::str::FromStr for UserRole {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_uppercase().as_str() {
             "ADMIN" => Ok(UserRole::Admin),
+            "MANAGER" => Ok(UserRole::Manager),
             "ANALYST" => Ok(UserRole::Analyst),
+            "READONLY" => Ok(UserRole::ReadOnly),
             _ => Err(format!("Invalid user role: {}", s)),
         }
+    }
+}
+
+impl UserRole {
+    /// Check if this role can perform admin operations
+    pub fn can_admin(&self) -> bool {
+        matches!(self, UserRole::Admin)
+    }
+
+    /// Check if this role can manage users in an organization
+    pub fn can_manage_users(&self) -> bool {
+        matches!(self, UserRole::Admin | UserRole::Manager)
+    }
+
+    /// Check if this role can modify assets
+    pub fn can_modify_assets(&self) -> bool {
+        matches!(
+            self,
+            UserRole::Admin | UserRole::Manager | UserRole::Analyst
+        )
+    }
+
+    /// Check if this role can view assets
+    pub fn can_view_assets(&self) -> bool {
+        true // All roles can view assets
+    }
+
+    /// Check if this role can modify vulnerabilities
+    pub fn can_modify_vulnerabilities(&self) -> bool {
+        matches!(
+            self,
+            UserRole::Admin | UserRole::Manager | UserRole::Analyst
+        )
+    }
+
+    /// Check if this role can run discovery jobs
+    pub fn can_run_discovery(&self) -> bool {
+        matches!(
+            self,
+            UserRole::Admin | UserRole::Manager | UserRole::Analyst
+        )
     }
 }
 
