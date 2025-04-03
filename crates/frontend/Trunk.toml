@@ -1,6 +1,18 @@
+[[hooks]]
+stage = "pre_build"
+command = "tailwindcss"
+command_arguments = [
+  "build", 
+  "-i", "style/main.css", 
+  "-o", "style/output.css",
+  "--watch",
+]
+
 [build]
 target = "index.html"
+release = false
 dist = "dist"
+public_url = "/"
 
 [watch]
 ignore = [

@@ -1,125 +1,91 @@
+use crate::components::ui::asset_card::{Asset, AssetCard};
 use leptos::prelude::*;
 
 #[component]
 pub fn AssetsPage() -> impl IntoView {
+    // In a real app, this would be fetched from API
+    let assets = create_signal(vec![
+        Asset {
+            id: "1".to_string(),
+            name: "example.com".to_string(),
+            asset_type: "Domain".to_string(),
+            status: "Active".to_string(),
+            discovery_date: "2023-03-15".to_string(),
+            vulnerabilities_count: 3,
+        },
+        Asset {
+            id: "2".to_string(),
+            name: "api.example.com".to_string(),
+            asset_type: "Subdomain".to_string(),
+            status: "Active".to_string(),
+            discovery_date: "2023-03-16".to_string(),
+            vulnerabilities_count: 1,
+        },
+        Asset {
+            id: "3".to_string(),
+            name: "192.168.1.1".to_string(),
+            asset_type: "IP Address".to_string(),
+            status: "Inactive".to_string(),
+            discovery_date: "2023-03-14".to_string(),
+            vulnerabilities_count: 0,
+        },
+        Asset {
+            id: "4".to_string(),
+            name: "example.org".to_string(),
+            asset_type: "Domain".to_string(),
+            status: "Active".to_string(),
+            discovery_date: "2023-03-12".to_string(),
+            vulnerabilities_count: 5,
+        },
+    ]);
+
+    let selected_asset = create_signal::<Option<String>>(None);
+
+    let handle_asset_click = create_callback(move |id: String| {
+        selected_asset.set(Some(id));
+        log::info!("Asset selected: {}", id);
+        // In a real app, this would navigate to asset details or open a modal
+    });
+
     view! {
-        <div>
+        <div class="page-container">
             <div class="page-header">
                 <h1 class="page-title">"Assets"</h1>
-                <div class="btn-group">
+                <div class="page-actions">
+                    <button class="btn btn-primary">"Add New Asset"</button>
                     <button class="btn btn-secondary">"Import Assets"</button>
-                    <button class="btn btn-primary">"Add Asset"</button>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="filter-bar">
-                    <input type="text" class="form-input" placeholder="Search assets..." />
-                    <select class="form-select">
-                        <option>"All Types"</option>
-                        <option>"Domain"</option>
-                        <option>"IP Address"</option>
-                        <option>"Web Application"</option>
-                        <option>"Cloud Resource"</option>
-                    </select>
-                    <select class="form-select">
-                        <option>"All Statuses"</option>
-                        <option>"Active"</option>
-                        <option>"Inactive"</option>
-                        <option>"Archived"</option>
-                    </select>
-                    <button class="btn btn-secondary">"Filter"</button>
-                </div>
-
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>"Asset"</th>
-                            <th>"Type"</th>
-                            <th>"Status"</th>
-                            <th>"Technologies"</th>
-                            <th>"Vulnerabilities"</th>
-                            <th>"Last Seen"</th>
-                            <th>"Actions"</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>"example.com"</td>
-                            <td>"Domain"</td>
-                            <td><span class="badge badge-success">"Active"</span></td>
-                            <td>"4"</td>
-                            <td>"2"</td>
-                            <td>"2023-03-15"</td>
-                            <td>
-                                <button class="btn btn-small btn-secondary">"View"</button>
-                                <button class="btn btn-small btn-secondary">"Scan"</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>"api.example.com"</td>
-                            <td>"Domain"</td>
-                            <td><span class="badge badge-success">"Active"</span></td>
-                            <td>"3"</td>
-                            <td>"3"</td>
-                            <td>"2023-03-15"</td>
-                            <td>
-                                <button class="btn btn-small btn-secondary">"View"</button>
-                                <button class="btn btn-small btn-secondary">"Scan"</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>"192.168.1.1"</td>
-                            <td>"IP Address"</td>
-                            <td><span class="badge badge-success">"Active"</span></td>
-                            <td>"2"</td>
-                            <td>"1"</td>
-                            <td>"2023-03-14"</td>
-                            <td>
-                                <button class="btn btn-small btn-secondary">"View"</button>
-                                <button class="btn btn-small btn-secondary">"Scan"</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>"storage.example.com"</td>
-                            <td>"Cloud Resource"</td>
-                            <td><span class="badge badge-warning">"Inactive"</span></td>
-                            <td>"1"</td>
-                            <td>"0"</td>
-                            <td>"2023-03-10"</td>
-                            <td>
-                                <button class="btn btn-small btn-secondary">"View"</button>
-                                <button class="btn btn-small btn-secondary">"Scan"</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="pagination">
-                    <button class="btn btn-secondary">"Previous"</button>
-                    <span class="pagination-info">"Showing 1-4 of 125"</span>
-                    <button class="btn btn-secondary">"Next"</button>
-                </div>
+            <div class="filter-bar">
+                <input type="text" placeholder="Search assets..." class="search-input" />
+                <select class="filter-select">
+                    <option>"All Types"</option>
+                    <option>"Domain"</option>
+                    <option>"Subdomain"</option>
+                    <option>"IP Address"</option>
+                </select>
+                <select class="filter-select">
+                    <option>"All Statuses"</option>
+                    <option>"Active"</option>
+                    <option>"Inactive"</option>
+                </select>
             </div>
 
-            <div class="grid grid-2">
-                <div class="card">
-                    <h2>"Asset Types Distribution"</h2>
-                    <div class="chart-container">
-                        <div id="asset-types-chart">
-                            <p class="chart-placeholder">"Pie chart will render here..."</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>"Asset Risk Overview"</h2>
-                    <div class="chart-container">
-                        <div id="asset-risk-chart">
-                            <p class="chart-placeholder">"Bar chart will render here..."</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="asset-grid">
+                {move || assets.get().into_iter().map(|asset| {
+                    view! {
+                        <AssetCard
+                            id={asset.id.clone()}
+                            name={asset.name}
+                            asset_type={asset.asset_type}
+                            status={asset.status}
+                            discovery_date={asset.discovery_date}
+                            vulnerabilities_count={asset.vulnerabilities_count}
+                            on_click={handle_asset_click}
+                        />
+                    }
+                }).collect::<Vec<_>>()}
             </div>
         </div>
     }
