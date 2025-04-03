@@ -311,10 +311,7 @@ impl UserRepository for PgUserRepository {
         let row = query.fetch_one(&self.pool).await?;
 
         // Get count value with error handling
-        let count: i64 = match row.try_get("count") {
-            Ok(val) => val,
-            Err(_) => 0,
-        };
+        let count: i64 = row.try_get("count").unwrap_or(0);
 
         Ok(count as usize)
     }

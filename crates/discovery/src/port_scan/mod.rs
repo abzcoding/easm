@@ -285,6 +285,7 @@ async fn scan_udp_port(ip: IpAddr, port: u16, source: String) -> Option<Discover
 }
 
 struct BannerResult {
+    #[allow(dead_code)]
     port: u16,
     banner: String,
     detected_service: String,

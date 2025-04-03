@@ -125,7 +125,7 @@ impl AssetBuilder {
         use chrono::Utc;
         use uuid::Uuid;
 
-        let now = self.timestamp.unwrap_or_else(|| Utc::now());
+        let now = self.timestamp.unwrap_or_else(Utc::now);
 
         Asset {
             id: Uuid::new_v4(),

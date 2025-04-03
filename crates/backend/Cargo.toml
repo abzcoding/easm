@@ -23,3 +23,10 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 sqlx = { workspace = true }
+reqwest = { workspace = true }
+scraper = { workspace = true }
+regex = "1.10.2"
+trust-dns-resolver = { workspace = true }
+
+[dev-dependencies]
+mockall = "0.11.4"

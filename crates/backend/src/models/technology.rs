@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use shared::types::{Timestamp, ID};
 
 /// Technology model
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Technology {
     /// Unique identifier
     pub id: ID,
