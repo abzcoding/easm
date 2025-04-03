@@ -72,13 +72,15 @@ tracing = { version = "0.1", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "serde", "fast-rng", "js"] }
 validator = { version = "0.20", features = ["derive"] }
-
-
+scraper = { version = "0.23", features = ["serde"] }
+trust-dns-resolver = "0.23"
+url = { version = "2.4", features = ["serde"] }
+lazy_static = "1.4"
 # frontend
 gloo = "0.11"
 leptos = { version = "0.7", features = ["csr", "nightly"] }
 leptos_router = { version = "0.7", features = ["ssr"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 web-sys = "0.3"
