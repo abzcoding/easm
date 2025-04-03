@@ -7,14 +7,11 @@ publish = false
 [dev-dependencies]
 api = { path = "../crates/api" }
 backend = { path = "../crates/backend" }
-frontend = { path = "../crates/frontend" }
 infrastructure = { path = "../crates/infrastructure" }
 discovery = { path = "../crates/discovery" }
 shared = { path = "../crates/shared" }
-tasks = { path = "../crates/tasks" }
 
 # Add test dependencies
-#tokio = { version = "1", features = ["full", "test-util", "macros"] }
 tokio = { workspace = true }
 uuid = { workspace = true }
 sqlx = { workspace = true }
@@ -26,6 +23,8 @@ axum = { workspace = true }
 http-body-util = { workspace = true }
 tower-service = { workspace = true }
 chrono = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
 
 [[test]]
 name = "database_tests"
@@ -34,3 +33,15 @@ path = "database_tests.rs"
 [[test]]
 name = "api_tests"
 path = "api_tests.rs"
+
+[[test]]
+name = "service_integration_tests"
+path = "service_integration_tests.rs"
+
+[[test]]
+name = "discovery_integration_tests"
+path = "discovery_integration_tests.rs"
+
+[[test]]
+name = "task_integration_tests"
+path = "task_integration_tests.rs"

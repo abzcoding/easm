@@ -22,6 +22,11 @@ impl RepositoryFactory {
         Self { pool }
     }
 
+    /// Get a reference to the database pool
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
+
     /// Create an organization repository
     pub fn organization_repository(&self) -> Arc<dyn OrganizationRepository> {
         Arc::new(PgOrganizationRepository::new(self.pool.clone()))
