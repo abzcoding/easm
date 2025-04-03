@@ -8,6 +8,7 @@ mod api_integration_tests {
     use backend::models::{Asset, Vulnerability};
     use http_body_util::BodyExt;
     use infrastructure::repositories::RepositoryFactory;
+    use serde_json::json;
     use shared::{
         config::Config,
         types::{AssetType, Severity},
@@ -43,6 +44,68 @@ mod api_integration_tests {
     async fn setup_test_router() -> axum::Router {
         let state = setup_test_app_state().await;
         create_router(state)
+    }
+
+    /// Authenticates a test user and returns a JWT token
+    async fn authenticate_test_user(app: &axum::Router) -> String {
+        // First, create a test organization
+        let factory = setup_test_db().await;
+        let org_repo = factory.organization_repository();
+
+        // Create a test organization
+        let org_name = format!("Test Auth Org {}", Uuid::new_v4());
+        let org = backend::models::Organization::new(org_name);
+        let org = org_repo
+            .create_organization(&org)
+            .await
+            .expect("Failed to create organization");
+
+        // Register a test user with the valid organization ID
+        let email = format!("test-{}@example.com", Uuid::new_v4());
+        let password = "Password123!";
+
+        let register_payload = json!({
+            "organization_id": org.id,
+            "email": email,
+            "password": password
+        });
+
+        let register_request = Request::builder()
+            .uri("/api/auth/register")
+            .method(http::Method::POST)
+            .header("Content-Type", "application/json")
+            .body(Body::from(register_payload.to_string()))
+            .unwrap();
+
+        let register_response = app.clone().oneshot(register_request).await.unwrap();
+        assert_eq!(register_response.status(), StatusCode::CREATED);
+
+        // Login the user
+        let login_payload = json!({
+            "email": email,
+            "password": password
+        });
+
+        let login_request = Request::builder()
+            .uri("/api/auth/login")
+            .method(http::Method::POST)
+            .header("Content-Type", "application/json")
+            .body(Body::from(login_payload.to_string()))
+            .unwrap();
+
+        let login_response = app.clone().oneshot(login_request).await.unwrap();
+        assert_eq!(login_response.status(), StatusCode::OK);
+
+        // Extract token from response
+        let body = login_response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes();
+        let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        response["token"].as_str().unwrap().to_string()
     }
 
     #[tokio::test]
@@ -88,6 +151,9 @@ mod api_integration_tests {
         // Setup the router
         let app = setup_test_router().await;
 
+        // Authenticate and get token
+        let token = authenticate_test_user(&app).await;
+
         // Test - Create Asset
         let asset_value = format!("api-test-{}.example.com", Uuid::new_v4());
         let create_asset_json = serde_json::json!({
@@ -104,6 +170,7 @@ mod api_integration_tests {
                     .uri("/api/assets")
                     .method(http::Method::POST)
                     .header("Content-Type", "application/json")
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::from(create_asset_json.to_string()))
                     .unwrap(),
             )
@@ -137,6 +204,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/assets/{}", asset.id))
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -174,6 +242,7 @@ mod api_integration_tests {
                     .uri(&format!("/api/assets/{}", asset.id))
                     .method(http::Method::PUT)
                     .header("Content-Type", "application/json")
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::from(update_asset_json.to_string()))
                     .unwrap(),
             )
@@ -199,6 +268,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/assets?organization_id={}", org.id))
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -249,6 +319,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/assets/{}", asset.id))
                     .method(http::Method::DELETE)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -294,6 +365,9 @@ mod api_integration_tests {
         // Setup the router
         let app = setup_test_router().await;
 
+        // Authenticate and get token
+        let token = authenticate_test_user(&app).await;
+
         // Test - Create Vulnerability
         let vuln_title = format!("Test Vulnerability {}", Uuid::new_v4());
         let create_vuln_json = serde_json::json!({
@@ -314,6 +388,7 @@ mod api_integration_tests {
                     .uri("/api/vulnerabilities")
                     .method(http::Method::POST)
                     .header("Content-Type", "application/json")
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::from(create_vuln_json.to_string()))
                     .unwrap(),
             )
@@ -350,6 +425,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -387,6 +463,7 @@ mod api_integration_tests {
                     .uri(&format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::PUT)
                     .header("Content-Type", "application/json")
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::from(update_vuln_json.to_string()))
                     .unwrap(),
             )
@@ -423,6 +500,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/vulnerabilities?asset_id={}", asset.id))
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -473,6 +551,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::DELETE)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -495,8 +574,11 @@ mod api_integration_tests {
 
     #[tokio::test]
     async fn test_error_handling() {
-        // Arrange
+        // Setup the router
         let app = setup_test_router().await;
+
+        // Authenticate and get token
+        let token = authenticate_test_user(&app).await;
 
         // Test - Not found endpoint
         let not_found_response = app
@@ -505,6 +587,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri("/api/nonexistent-endpoint")
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -521,6 +604,7 @@ mod api_integration_tests {
                 Request::builder()
                     .uri(&format!("/api/assets/{}", invalid_id))
                     .method(http::Method::GET)
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -538,6 +622,7 @@ mod api_integration_tests {
                     .uri("/api/assets")
                     .method(http::Method::POST)
                     .header("Content-Type", "application/json")
+                    .header("Authorization", format!("Bearer {}", token))
                     .body(Body::from(bad_json))
                     .unwrap(),
             )

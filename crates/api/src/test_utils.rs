@@ -1,12 +1,23 @@
 use async_trait::async_trait;
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+    Router,
+};
+use http_body_util::BodyExt;
+use serde_json::json;
+use tower::ServiceExt;
 
+use crate::{handlers::auth_handler::AuthResponseDto, state::AppState};
 use backend::{
     models::{Asset, Organization, User, Vulnerability},
     Result,
 };
-use shared::config::Config;
-use shared::types::{
-    AssetStatus, AssetType, JobStatus, JobType, Severity, VulnerabilityStatus, ID,
+use shared::{
+    config::Config,
+    types::{
+        AssetStatus, AssetType, JobStatus, JobType, Severity, UserRole, VulnerabilityStatus, ID,
+    },
 };
 use uuid::Uuid;
 
@@ -19,19 +30,47 @@ pub struct MockUserService;
 #[derive(Clone)]
 pub struct MockOrganizationService;
 
+#[derive(Clone)]
+pub struct MockDiscoveryService;
+
 #[async_trait]
 impl backend::UserService for MockUserService {
     async fn register_user(
         &self,
-        _organization_id: &Uuid,
-        _email: &str,
+        organization_id: &Uuid,
+        email: &str,
         _password: &str,
     ) -> Result<User> {
-        unimplemented!()
+        // In tests, we'll consider any organization ID valid
+        // and we'll ignore email uniqueness
+
+        // Return a mock user
+        let now = chrono::Utc::now();
+        Ok(User {
+            id: Uuid::new_v4(),
+            organization_id: *organization_id,
+            username: email.split('@').next().unwrap_or("testuser").to_string(),
+            email: email.to_string(),
+            password_hash: "hashed_password".to_string(), // Mock hash
+            role: UserRole::Analyst,                      // Default role
+            created_at: now,
+            updated_at: now,
+        })
     }
 
-    async fn login_user(&self, _email: &str, _password: &str) -> Result<User> {
-        unimplemented!()
+    async fn login_user(&self, email: &str, _password: &str) -> Result<User> {
+        // Return a mock user, assuming login is successful for the test email
+        let now = chrono::Utc::now();
+        Ok(User {
+            id: Uuid::new_v4(), // Use a consistent ID if needed across tests, or generate new
+            organization_id: Uuid::new_v4(), // Mock organization ID
+            username: email.split('@').next().unwrap_or("testuser").to_string(),
+            email: email.to_string(),
+            password_hash: "hashed_password".to_string(),
+            role: UserRole::Analyst,
+            created_at: now,
+            updated_at: now,
+        })
     }
 }
 
@@ -326,28 +365,23 @@ impl backend::VulnerabilityService for MockVulnerabilityService {
     }
 }
 
-// Mock discovery service
-#[derive(Clone)]
-pub struct MockDiscoveryService;
-
 #[async_trait]
 impl backend::DiscoveryService for MockDiscoveryService {
     async fn discover_assets(
         &self,
-        _organization_id: ID,
-        _domain: &str,
+        organization_id: ID,
+        domain: &str,
         _job_types: Vec<JobType>,
     ) -> Result<backend::models::DiscoveryJob> {
-        // Return a mock discovery job
         let now = chrono::Utc::now();
         Ok(backend::models::DiscoveryJob {
             id: Uuid::new_v4(),
-            organization_id: Uuid::new_v4(),
+            organization_id,
             job_type: JobType::DnsEnum,
             status: JobStatus::Completed,
-            target: Some("example.com".to_string()),
+            target: Some(domain.to_string()),
             configuration: serde_json::json!({
-                "domain": "example.com"
+                "domain": domain
             }),
             logs: None,
             created_at: now,
@@ -357,24 +391,20 @@ impl backend::DiscoveryService for MockDiscoveryService {
         })
     }
 
-    async fn scan_asset(&self, _asset_id: ID) -> Result<Vec<Vulnerability>> {
-        // Return a list of mock vulnerabilities
+    async fn scan_asset(&self, asset_id: ID) -> Result<Vec<Vulnerability>> {
         let now = chrono::Utc::now();
         Ok(vec![Vulnerability {
             id: Uuid::new_v4(),
-            asset_id: _asset_id,
+            asset_id,
             port_id: Some(Uuid::new_v4()),
-            title: "Found Vulnerability 1".to_string(),
-            description: Some("A vulnerability found during scanning".to_string()),
-            severity: Severity::High,
+            title: "Mock Vulnerability".to_string(),
+            description: Some("Found during mock scan".to_string()),
+            severity: Severity::Medium,
             status: VulnerabilityStatus::Open,
-            cve_id: Some("CVE-2023-5678".to_string()),
-            cvss_score: Some(8.2),
-            evidence: serde_json::json!({
-                "exploit_available": true,
-                "references": ["https://example.com/vuln-scan1"]
-            }),
-            remediation: Some("Apply security patch".to_string()),
+            cve_id: Some("CVE-2024-MOCK".to_string()),
+            cvss_score: Some(5.0),
+            evidence: serde_json::json!({ "details": "Mock scan evidence" }),
+            remediation: Some("Apply mock patch".to_string()),
             first_seen: now,
             last_seen: now,
             resolved_at: None,
@@ -383,27 +413,76 @@ impl backend::DiscoveryService for MockDiscoveryService {
         }])
     }
 }
-pub fn create_test_app_state() -> crate::state::AppState {
-    let config = Config {
-        database_url: "postgres://postgres:postgres@localhost:5432/easm_test".to_string(),
-        redis_url: None,
-        host: "127.0.0.1".parse().unwrap(),
-        port: 3000,
-        jwt_secret: "test_secret".to_string(),
-        jwt_expiration: 3600,
-        environment: shared::config::Environment::Test,
-        log_level: "debug".to_string(),
-        max_concurrent_tasks: 5,
-    };
 
-    crate::state::AppState {
-        config: config.clone(),
-        db_pool: sqlx::postgres::PgPool::connect_lazy(&config.database_url).unwrap(),
-        redis_client: None,
+// Helper function to create test state
+pub fn create_test_app_state() -> AppState {
+    // Load config first to get DB URL if needed for lazy pool
+    let config = Config::from_env().expect("Failed to load config for test state");
+    // Create a lazy PgPool (it won't connect until first use, which it won't in mocks)
+    let db_pool = sqlx::postgres::PgPool::connect_lazy(&config.database_url)
+        .expect("Failed to create lazy DB pool for tests");
+
+    AppState {
+        config,
+        db_pool,            // db_pool is still part of AppState
+        redis_client: None, // Assuming redis is optional
+        // Assign mock services directly to the state fields
         asset_service: std::sync::Arc::new(MockAssetService),
         vulnerability_service: std::sync::Arc::new(MockVulnerabilityService),
+        organization_service: std::sync::Arc::new(MockOrganizationService),
         discovery_service: std::sync::Arc::new(MockDiscoveryService),
         user_service: std::sync::Arc::new(MockUserService),
-        organization_service: std::sync::Arc::new(MockOrganizationService),
+        // Remove repository_factory field
     }
+}
+
+// Helper function to authenticate a test user and get a token
+pub async fn authenticate_test_user(router: &Router) -> String {
+    let org_id = Uuid::new_v4();
+    let user_email = format!("testuser_{}@example.com", Uuid::new_v4());
+    let user_password = "password123".to_string();
+
+    // --- Register User ---
+    let register_payload = json!({
+        "organization_id": org_id.to_string(),
+        "email": user_email,
+        "password": user_password
+    });
+
+    let register_request = Request::builder()
+        .uri("/api/auth/register")
+        .method("POST")
+        .header("Content-Type", "application/json")
+        .body(Body::from(register_payload.to_string()))
+        .unwrap();
+
+    let register_response = router.clone().oneshot(register_request).await.unwrap();
+    assert_eq!(register_response.status(), StatusCode::CREATED);
+
+    // --- Login User ---
+    let login_payload = json!({
+        "email": user_email,
+        "password": user_password
+    });
+
+    let login_request = Request::builder()
+        .uri("/api/auth/login")
+        .method("POST")
+        .header("Content-Type", "application/json")
+        .body(Body::from(login_payload.to_string()))
+        .unwrap();
+
+    let login_response = router.clone().oneshot(login_request).await.unwrap();
+    assert_eq!(login_response.status(), StatusCode::OK);
+
+    // Extract token from login response
+    let body = login_response
+        .into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let auth_response: AuthResponseDto = serde_json::from_slice(&body).unwrap();
+
+    auth_response.token
 }

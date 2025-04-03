@@ -38,39 +38,42 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         // Health check endpoint (no auth)
         .route("/health", get(health_check))
-        // API routes
         // Auth routes (NO middleware)
         .route("/api/auth/register", axum::routing::post(register))
         .route("/api/auth/login", axum::routing::post(login))
-        .route(
-            "/api/organizations",
-            get(list_organizations).post(create_organization),
+        // Protected routes - apply auth middleware to these routes
+        .nest(
+            "/api",
+            Router::new()
+                .route(
+                    "/organizations",
+                    get(list_organizations).post(create_organization),
+                )
+                .route(
+                    "/organizations/{id}",
+                    get(get_organization)
+                        .put(update_organization)
+                        .delete(delete_organization),
+                )
+                // Assets API
+                .route("/assets", get(list_assets).post(create_asset))
+                .route(
+                    "/assets/{id}",
+                    get(get_asset).put(update_asset).delete(delete_asset),
+                )
+                // Vulnerabilities API
+                .route(
+                    "/vulnerabilities",
+                    get(list_vulnerabilities).post(create_vulnerability),
+                )
+                .route(
+                    "/vulnerabilities/{id}",
+                    get(get_vulnerability)
+                        .put(update_vulnerability)
+                        .delete(delete_vulnerability),
+                )
+                .layer(from_fn_with_state(state.clone(), auth_middleware)),
         )
-        .route(
-            "/api/organizations/{id}",
-            get(get_organization)
-                .put(update_organization)
-                .delete(delete_organization),
-        )
-        // Assets API
-        .route("/api/assets", get(list_assets).post(create_asset))
-        .route(
-            "/api/assets/{id}",
-            get(get_asset).put(update_asset).delete(delete_asset),
-        )
-        // Vulnerabilities API
-        .route(
-            "/api/vulnerabilities",
-            get(list_vulnerabilities).post(create_vulnerability),
-        )
-        .route(
-            "/api/vulnerabilities/{id}",
-            get(get_vulnerability)
-                .put(update_vulnerability)
-                .delete(delete_vulnerability),
-        )
-        // Apply auth middleware to these routes
-        //.route_layer(from_fn_with_state(state.clone(), auth_middleware))
         // Add state
         .with_state(state)
         // Add middleware (cors applies to all routes, including /health)

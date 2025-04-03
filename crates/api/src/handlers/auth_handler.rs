@@ -20,9 +20,9 @@ pub struct LoginUserDto {
 }
 
 // Response DTO
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthResponseDto {
-    token: String,
+    pub token: String,
 }
 
 pub async fn register(

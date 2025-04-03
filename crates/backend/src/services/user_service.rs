@@ -2,7 +2,7 @@ use crate::errors::Result;
 use crate::{
     errors::Error as BackendError,
     models::User,
-    traits::{UserRepository, UserService},
+    traits::{OrganizationRepository, UserRepository, UserService},
 };
 use argon2::{
     self,
@@ -15,11 +15,18 @@ use uuid;
 
 pub struct UserServiceImpl {
     repository: Arc<dyn UserRepository>,
+    org_repository: Arc<dyn OrganizationRepository>,
 }
 
 impl UserServiceImpl {
-    pub fn new(repository: Arc<dyn UserRepository>) -> Self {
-        Self { repository }
+    pub fn new(
+        repository: Arc<dyn UserRepository>,
+        org_repository: Arc<dyn OrganizationRepository>,
+    ) -> Self {
+        Self {
+            repository,
+            org_repository,
+        }
     }
 }
 
@@ -31,11 +38,16 @@ impl UserService for UserServiceImpl {
         email: &str,
         password: &str,
     ) -> Result<User> {
-        // TODO: Validate email uniqueness
-        // let existing_user = self.user_repository.find_by_email(email).await?;
-        // if existing_user.is_some() {
-        //     return Err(BackendError::Conflict("Email already exists".to_string()));
-        // }
+        // Check if organization exists
+        self.org_repository
+            .get_organization(*organization_id)
+            .await?;
+
+        // Validate email uniqueness
+        let existing_user = self.repository.find_by_email(email).await?;
+        if existing_user.is_some() {
+            return Err(BackendError::Conflict("Email already exists".to_string()));
+        }
 
         // Hash password
         let password_hash = hash_password(password)?;
@@ -49,7 +61,7 @@ impl UserService for UserServiceImpl {
             email.to_string(),
             password_hash,
             Some(
-                "user"
+                "analyst"
                     .parse()
                     .map_err(|_| BackendError::Internal("Invalid default role".to_string()))?,
             ),

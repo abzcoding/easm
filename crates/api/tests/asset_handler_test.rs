@@ -1,7 +1,7 @@
 use api::test_utils::*;
 use axum::{
     body::Body,
-    http::{Request, StatusCode},
+    http::{header, Request, StatusCode},
 };
 use http_body_util::BodyExt;
 use serde_json::json;
@@ -16,11 +16,13 @@ pub struct MockAssetService;
 async fn test_list_assets() {
     // Create the router with mock services
     let router = api::routes::create_router(create_test_app_state());
+    let token = authenticate_test_user(&router).await;
 
     // Create a request to list assets
     let request = Request::builder()
         .uri("/api/assets")
         .method("GET")
+        .header(header::AUTHORIZATION, format!("Bearer {}", token))
         .body(Body::empty())
         .unwrap();
 
@@ -44,6 +46,7 @@ async fn test_list_assets() {
 async fn test_create_asset() {
     // Create the router with mock services
     let router = api::routes::create_router(create_test_app_state());
+    let token = authenticate_test_user(&router).await;
 
     // Create asset payload
     let asset_data = json!({
@@ -60,6 +63,7 @@ async fn test_create_asset() {
         .uri("/api/assets")
         .method("POST")
         .header("Content-Type", "application/json")
+        .header(header::AUTHORIZATION, format!("Bearer {}", token))
         .body(Body::from(asset_data.to_string()))
         .unwrap();
 
@@ -74,6 +78,7 @@ async fn test_create_asset() {
 async fn test_get_asset() {
     // Create the router with mock services
     let router = api::routes::create_router(create_test_app_state());
+    let token = authenticate_test_user(&router).await;
 
     // Create a random asset ID
     let asset_id = Uuid::new_v4();
@@ -82,6 +87,7 @@ async fn test_get_asset() {
     let request = Request::builder()
         .uri(format!("/api/assets/{}", asset_id))
         .method("GET")
+        .header(header::AUTHORIZATION, format!("Bearer {}", token))
         .body(Body::empty())
         .unwrap();
 
@@ -104,6 +110,7 @@ async fn test_get_asset() {
 async fn test_update_asset() {
     // Create the router with mock services
     let router = api::routes::create_router(create_test_app_state());
+    let token = authenticate_test_user(&router).await;
 
     // Create a random asset ID
     let asset_id = Uuid::new_v4();
@@ -125,6 +132,7 @@ async fn test_update_asset() {
         .uri(format!("/api/assets/{}", asset_id))
         .method("PUT")
         .header("Content-Type", "application/json")
+        .header(header::AUTHORIZATION, format!("Bearer {}", token))
         .body(Body::from(asset_data.to_string()))
         .unwrap();
 
@@ -139,6 +147,7 @@ async fn test_update_asset() {
 async fn test_delete_asset() {
     // Create the router with mock services
     let router = api::routes::create_router(create_test_app_state());
+    let token = authenticate_test_user(&router).await;
 
     // Create a random asset ID
     let asset_id = Uuid::new_v4();
@@ -147,6 +156,7 @@ async fn test_delete_asset() {
     let request = Request::builder()
         .uri(format!("/api/assets/{}", asset_id))
         .method("DELETE")
+        .header(header::AUTHORIZATION, format!("Bearer {}", token))
         .body(Body::empty())
         .unwrap();
 
