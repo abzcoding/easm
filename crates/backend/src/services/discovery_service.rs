@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use shared::types::{AssetType, JobType, ID};
+use std::sync::Arc;
 use tracing::info;
 
 use crate::{
@@ -8,12 +9,12 @@ use crate::{
     Result,
 };
 
-pub struct DiscoveryServiceImpl<R: AssetRepository> {
-    asset_repository: R,
+pub struct DiscoveryServiceImpl {
+    asset_repository: Arc<dyn AssetRepository>,
 }
 
-impl<R: AssetRepository> DiscoveryServiceImpl<R> {
-    pub fn new(asset_repository: R) -> Self {
+impl DiscoveryServiceImpl {
+    pub fn new(asset_repository: Arc<dyn AssetRepository>) -> Self {
         Self { asset_repository }
     }
 
@@ -114,7 +115,7 @@ impl<R: AssetRepository> DiscoveryServiceImpl<R> {
 }
 
 #[async_trait]
-impl<R: AssetRepository> DiscoveryService for DiscoveryServiceImpl<R> {
+impl DiscoveryService for DiscoveryServiceImpl {
     async fn discover_assets(
         &self,
         organization_id: ID,

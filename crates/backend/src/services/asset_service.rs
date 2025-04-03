@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use shared::types::{AssetStatus, AssetType, ID};
+use std::sync::Arc;
 use tracing::{debug, info};
 
 use crate::{
@@ -8,18 +9,18 @@ use crate::{
     Result,
 };
 
-pub struct AssetServiceImpl<R: AssetRepository> {
-    repository: R,
+pub struct AssetServiceImpl {
+    repository: Arc<dyn AssetRepository>,
 }
 
-impl<R: AssetRepository> AssetServiceImpl<R> {
-    pub fn new(repository: R) -> Self {
+impl AssetServiceImpl {
+    pub fn new(repository: Arc<dyn AssetRepository>) -> Self {
         Self { repository }
     }
 }
 
 #[async_trait]
-impl<R: AssetRepository> AssetService for AssetServiceImpl<R> {
+impl AssetService for AssetServiceImpl {
     async fn create_asset(&self, asset: &Asset) -> Result<Asset> {
         info!("Creating new asset: {}", asset.value);
         let result = self.repository.create_asset(asset).await?;

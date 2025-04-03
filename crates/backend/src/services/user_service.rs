@@ -1,28 +1,31 @@
-use std::sync::Arc;
+use crate::errors::Result;
+use crate::{
+    errors::Error as BackendError,
+    models::User,
+    traits::{UserRepository, UserService},
+};
 use argon2::{
     self,
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use crate::{
-    errors::Error as BackendError,
-    models::User,
-    traits::UserRepository,
-};
-use crate::errors::Result;
+use async_trait::async_trait;
+use std::sync::Arc;
 use uuid;
 
-
-pub struct UserService {
-    user_repository: Arc<dyn UserRepository>,
+pub struct UserServiceImpl {
+    repository: Arc<dyn UserRepository>,
 }
 
-impl UserService {
-    pub fn new(user_repository: Arc<dyn UserRepository>) -> Self {
-        Self { user_repository }
+impl UserServiceImpl {
+    pub fn new(repository: Arc<dyn UserRepository>) -> Self {
+        Self { repository }
     }
+}
 
-    pub async fn register_user(
+#[async_trait]
+impl UserService for UserServiceImpl {
+    async fn register_user(
         &self,
         organization_id: &uuid::Uuid,
         email: &str,
@@ -45,18 +48,22 @@ impl UserService {
             username,
             email.to_string(),
             password_hash,
-            Some("user".parse().map_err(|_| BackendError::Internal("Invalid default role".to_string()))?),
+            Some(
+                "user"
+                    .parse()
+                    .map_err(|_| BackendError::Internal("Invalid default role".to_string()))?,
+            ),
         );
 
         // Save user
-        let created_user = self.user_repository.create_user(&user).await?;
+        let created_user = self.repository.create_user(&user).await?;
         Ok(created_user)
     }
 
-    pub async fn login_user(&self, email: &str, password: &str) -> Result<User> {
+    async fn login_user(&self, email: &str, password: &str) -> Result<User> {
         // Find user by email
         let user = self
-            .user_repository
+            .repository
             .find_by_email(email)
             .await?
             .ok_or_else(|| BackendError::NotFound("User not found".to_string()))?;
@@ -65,13 +72,10 @@ impl UserService {
         if verify_password(&user.password_hash, password)? {
             Ok(user)
         } else {
-            Err(BackendError::Authentication("Invalid credentials".to_string()))
+            Err(BackendError::Authentication(
+                "Invalid credentials".to_string(),
+            ))
         }
-    }
-
-    pub async fn find_by_email(&self, email: &str) -> Result<Option<User>> {
-        let user = self.user_repository.find_by_email(email).await?;
-        Ok(user)
     }
 }
 
@@ -94,12 +98,12 @@ fn hash_password(password: &str) -> Result<String> {
 fn verify_password(hash: &str, password: &str) -> Result<bool> {
     let parsed_hash = PasswordHash::new(hash)
         .map_err(|e| BackendError::Internal(format!("Invalid password hash format: {}", e)))?;
-    
+
     let argon2 = Argon2::default(); // Use the same variant for verification
 
     // Verify password against hash
     match argon2.verify_password(password.as_bytes(), &parsed_hash) {
-        Ok(_) => Ok(true), // Password matches
+        Ok(_) => Ok(true),                                        // Password matches
         Err(argon2::password_hash::Error::Password) => Ok(false), // Password does not match
         Err(e) => Err(BackendError::Internal(format!(
             "Password verification failed unexpectedly: {}",
@@ -109,4 +113,4 @@ fn verify_password(hash: &str, password: &str) -> Result<bool> {
 }
 
 // Helper function to generate salt - No longer needed with PasswordHasher
-// fn generate_salt() -> Result<Vec<u8>> { ... } 
+// fn generate_salt() -> Result<Vec<u8>> { ... }

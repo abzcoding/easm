@@ -4,12 +4,11 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
-use uuid::Uuid;
 
 use crate::{errors::ApiError, state::AppState};
-use backend::{models::Organization, OrganizationService}; // Use trait instead of impl
+use backend::models::Organization; // Use trait instead of impl
 use shared::types::{PaginationParams, ID}; // Use ID alias
 
 // DTOs
@@ -30,7 +29,9 @@ pub async fn create_organization(
 ) -> Result<impl IntoResponse, ApiError> {
     // TODO: Add authorization check (e.g., only Admins can create orgs?)
     if payload.name.is_empty() {
-        return Err(ApiError::BadRequest("Organization name cannot be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Organization name cannot be empty".to_string(),
+        ));
     }
     let org = Organization::new(payload.name);
     let created_org = state.organization_service.create_organization(&org).await?;
@@ -65,7 +66,9 @@ pub async fn update_organization(
 ) -> Result<impl IntoResponse, ApiError> {
     // TODO: Add authorization check
     if payload.name.is_empty() {
-        return Err(ApiError::BadRequest("Organization name cannot be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Organization name cannot be empty".to_string(),
+        ));
     }
     // Get existing org first to update it
     let mut org = state.organization_service.get_organization(org_id).await?;
@@ -80,11 +83,14 @@ pub async fn delete_organization(
     Path(org_id): Path<ID>, // Use ID alias
 ) -> Result<impl IntoResponse, ApiError> {
     // TODO: Add authorization check
-    let deleted = state.organization_service.delete_organization(org_id).await?;
+    let deleted = state
+        .organization_service
+        .delete_organization(org_id)
+        .await?;
     if deleted {
         Ok(StatusCode::NO_CONTENT)
     } else {
         // This case might not happen if get_organization is checked first in a real scenario
         Err(ApiError::NotFound("Organization not found".to_string()))
     }
-} 
+}

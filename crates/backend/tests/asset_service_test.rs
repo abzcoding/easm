@@ -116,7 +116,7 @@ mod tests {
     #[test]
     async fn test_create_asset() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository);
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
         let asset = Asset::new(org_id, AssetType::Domain, "example.com".into(), None);
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     async fn test_get_asset() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository.clone());
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
         let asset = Asset::new(org_id, AssetType::Domain, "example.com".into(), None);
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     async fn test_update_asset() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository.clone());
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
         let mut asset = Asset::new(org_id, AssetType::Domain, "example.com".into(), None);
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     async fn test_delete_asset() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository.clone());
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
         let asset = Asset::new(org_id, AssetType::Domain, "example.com".into(), None);
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     async fn test_list_assets() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository.clone());
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
 
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     async fn test_count_assets() {
         let repository = MockAssetRepository::new();
-        let service = AssetServiceImpl::new(repository.clone());
+        let service = AssetServiceImpl::new(Arc::new(repository));
 
         let org_id = Uuid::new_v4();
 

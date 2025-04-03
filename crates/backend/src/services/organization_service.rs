@@ -9,7 +9,6 @@ use crate::{
     traits::{OrganizationRepository, OrganizationService},
 };
 
-
 pub struct OrganizationServiceImpl {
     repo: Arc<dyn OrganizationRepository>,
 }
@@ -47,4 +46,4 @@ impl OrganizationService for OrganizationServiceImpl {
     async fn count_organizations(&self) -> Result<usize> {
         self.repo.count_organizations().await
     }
-} 
+}

@@ -58,6 +58,18 @@ pub trait UserRepository: Send + Sync + 'static {
 }
 
 #[async_trait]
+pub trait UserService: Send + Sync + 'static {
+    async fn register_user(
+        &self,
+        organization_id: &uuid::Uuid,
+        email: &str,
+        password: &str,
+    ) -> Result<User>;
+
+    async fn login_user(&self, email: &str, password: &str) -> Result<User>;
+}
+
+#[async_trait]
 pub trait AssetRepository: Send + Sync + 'static {
     async fn create_asset(&self, asset: &Asset) -> Result<Asset>;
 

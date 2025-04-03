@@ -1,8 +1,4 @@
-use axum::{
-    middleware::from_fn_with_state,
-    routing::get,
-    Router
-};
+use axum::{middleware::from_fn_with_state, routing::get, Router};
 use std::sync::Arc;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -58,10 +54,15 @@ pub fn create_router(state: AppState) -> Router {
                     "/", // Nest other routes under the root of /api
                     Router::new()
                         // Organizations API
-                        .route("/organizations", get(list_organizations).post(create_organization))
+                        .route(
+                            "/organizations",
+                            get(list_organizations).post(create_organization),
+                        )
                         .route(
                             "/organizations/{id}",
-                            get(get_organization).put(update_organization).delete(delete_organization),
+                            get(get_organization)
+                                .put(update_organization)
+                                .delete(delete_organization),
                         )
                         // Assets API
                         .route("/assets", get(list_assets).post(create_asset))

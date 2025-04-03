@@ -1,15 +1,9 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid;
 
 use crate::{errors::ApiError, middleware::auth::generate_token, state::AppState};
-use backend::services::UserService; // Assuming UserService will exist
 
 // Request DTOs
 #[derive(Deserialize)]
@@ -47,18 +41,14 @@ pub async fn register(
     // 3. Call UserService to create user
     let user = state
         .user_service
-        .register_user(
-            &payload.organization_id,
-            &payload.email,
-            &payload.password,
-        )
+        .register_user(&payload.organization_id, &payload.email, &payload.password)
         .await?;
 
     // 4. Generate JWT token
     let token = generate_token(
         &user.id.to_string(),
-        &user.role.to_string(), // Assuming User model has role
-        user.organization_id.as_ref().map(|id| id.to_string()).as_deref(), // Assuming User model has optional org id
+        &format!("{:?}", user.role),
+        Some(&user.organization_id.to_string()),
         &state.config,
     )?;
 
@@ -73,7 +63,9 @@ pub async fn login(
     // TODO: Implement user login logic
     // 1. Validate input
     if payload.email.is_empty() || payload.password.is_empty() {
-        return Err(ApiError::BadRequest("Email and password cannot be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Email and password cannot be empty".to_string(),
+        ));
     }
 
     // 2. Call UserService to find user by email/username and verify password
@@ -85,11 +77,11 @@ pub async fn login(
     // 4. Generate JWT token
     let token = generate_token(
         &user.id.to_string(),
-        &user.role.to_string(),
-        user.organization_id.as_ref().map(|id| id.to_string()).as_deref(),
+        &format!("{:?}", user.role),
+        Some(&user.organization_id.to_string()),
         &state.config,
     )?;
 
     // 5. Return token in response
     Ok(Json(AuthResponseDto { token }))
-} 
+}
