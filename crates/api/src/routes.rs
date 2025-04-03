@@ -135,7 +135,7 @@ pub fn create_router(state: AppState) -> Router {
                     "/reports/assets",
                     get(report_handler::generate_asset_report),
                 )
-                .route("/reports/:report_id", get(report_handler::download_report))
+                .route("/reports/{report_id}", get(report_handler::download_report))
                 // Apply authentication middleware to all routes under /api
                 .route_layer(from_fn_with_state(state.clone(), auth_middleware)),
         )

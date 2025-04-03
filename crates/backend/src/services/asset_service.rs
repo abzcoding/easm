@@ -212,12 +212,22 @@ impl AssetService for AssetServiceImpl {
                 }
 
                 // Check for subdomain relationship
-                if domain_b.value.ends_with(&format!(".{}", domain_a.value)) {
-                    discovered_relationships.push((
-                        domain_b.id,
-                        domain_a.id,
-                        AssetRelationshipType::Subdomain.as_str().to_string(),
-                    ));
+                let domain_a_value = domain_a.value.to_string();
+                let domain_b_value = domain_b.value.to_string();
+
+                // Check if domain_b is a subdomain of domain_a
+                // "sub.test-domain.com" should be identified as a subdomain of "test-domain.com"
+                if domain_b_value != domain_a_value {
+                    // Check if domain_b is a subdomain of domain_a using direct string comparison
+                    let is_subdomain = domain_b_value.ends_with(&format!(".{}", domain_a_value));
+
+                    if is_subdomain {
+                        discovered_relationships.push((
+                            domain_b.id,
+                            domain_a.id,
+                            AssetRelationshipType::Subdomain.as_str().to_string(),
+                        ));
+                    }
                 }
 
                 // Check for same registrar relationship (if info available)

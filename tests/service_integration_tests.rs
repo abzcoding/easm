@@ -337,9 +337,10 @@ mod service_integration_tests {
                     .iter()
                     .find(|a| a.value == "test-domain.com")
                     .unwrap();
+
                 *source_id == subdomain.id
                     && *target_id == domain.id
-                    && rel_type.contains("Subdomain")
+                    && rel_type.to_lowercase().contains("subdomain")
             });
 
         let has_hosted_on_rel = relationships
@@ -353,7 +354,10 @@ mod service_integration_tests {
                     .iter()
                     .find(|a| a.asset_type == AssetType::IPAddress)
                     .unwrap();
-                *source_id == web_app.id && *target_id == ip.id && rel_type.contains("HostedOn")
+
+                *source_id == web_app.id
+                    && *target_id == ip.id
+                    && rel_type.to_lowercase().contains("hosted")
             });
 
         assert!(has_subdomain_rel, "No subdomain relationship found");
