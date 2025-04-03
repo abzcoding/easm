@@ -1,0 +1,15 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[watch]
+ignore = [
+    "dist",
+    ".git",
+    ".gitignore",
+    "Cargo.lock",
+]
+
+[serve]
+port = 8080
+open = true 

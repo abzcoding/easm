@@ -5,14 +5,14 @@ use scraper::{Html, Selector};
 use url::Url;
 
 // Basic web crawler
-pub async fn crawl_url(target_url: &str, depth: u8) -> Result<Vec<DiscoveryResult>> {
+pub async fn crawl_url(target_url: &str, depth: u8) -> Result<DiscoveryResult> {
     tracing::debug!("Crawling URL: {} with depth: {}", target_url, depth);
     let client = Client::builder()
         .user_agent("EASM Discovery Bot/0.1") // Be a good bot citizen
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
-    let mut results: Vec<DiscoveryResult> = Vec::new();
+    let mut discovery_result = DiscoveryResult::new();
     let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut queue: std::collections::VecDeque<(String, u8)> = std::collections::VecDeque::new();
 
@@ -50,13 +50,13 @@ pub async fn crawl_url(target_url: &str, depth: u8) -> Result<Vec<DiscoveryResul
                         // Check for common technology indicators in the HTML
                         detect_technologies(&document, &mut technologies);
 
-                        results.push(DiscoveryResult::WebResource(DiscoveredWebResource {
+                        discovery_result.web_resources.push(DiscoveredWebResource {
                             url: final_url.clone(),
                             status_code: status.as_u16(),
                             title,
                             technologies,
                             source: source.clone(),
-                        }));
+                        });
 
                         // Find links if depth allows further crawling
                         if current_depth < depth {
@@ -99,7 +99,7 @@ pub async fn crawl_url(target_url: &str, depth: u8) -> Result<Vec<DiscoveryResul
         }
     }
 
-    Ok(results)
+    Ok(discovery_result)
 }
 
 // Helper function to detect web technologies from HTML

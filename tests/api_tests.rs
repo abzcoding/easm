@@ -202,7 +202,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/assets/{}", asset.id))
+                    .uri(format!("/api/assets/{}", asset.id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -239,7 +239,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/assets/{}", asset.id))
+                    .uri(format!("/api/assets/{}", asset.id))
                     .method(http::Method::PUT)
                     .header("Content-Type", "application/json")
                     .header("Authorization", format!("Bearer {}", token))
@@ -266,7 +266,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/assets?organization_id={}", org.id))
+                    .uri(format!("/api/assets?organization_id={}", org.id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -317,7 +317,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/assets/{}", asset.id))
+                    .uri(format!("/api/assets/{}", asset.id))
                     .method(http::Method::DELETE)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -423,7 +423,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/vulnerabilities/{}", vuln.id))
+                    .uri(format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -460,7 +460,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/vulnerabilities/{}", vuln.id))
+                    .uri(format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::PUT)
                     .header("Content-Type", "application/json")
                     .header("Authorization", format!("Bearer {}", token))
@@ -498,7 +498,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/vulnerabilities?asset_id={}", asset.id))
+                    .uri(format!("/api/vulnerabilities?asset_id={}", asset.id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -549,7 +549,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/vulnerabilities/{}", vuln.id))
+                    .uri(format!("/api/vulnerabilities/{}", vuln.id))
                     .method(http::Method::DELETE)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())
@@ -602,7 +602,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/assets/{}", invalid_id))
+                    .uri(format!("/api/assets/{}", invalid_id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())

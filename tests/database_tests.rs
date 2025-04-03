@@ -19,9 +19,8 @@ mod integration_tests {
             .expect("Failed to connect to database");
 
         // Create repository factory
-        let factory = RepositoryFactory::new(pool);
 
-        factory
+        RepositoryFactory::new(pool)
     }
 
     #[tokio::test]

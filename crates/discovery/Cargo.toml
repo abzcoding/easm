@@ -16,9 +16,15 @@ serde = {workspace = true}
 uuid = {workspace = true}
 anyhow = { workspace = true }
 trust-dns-resolver = { workspace = true }
-tokio = { workspace = true }
-reqwest = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+reqwest = { workspace = true, features = ["json"] }
 scraper = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 lazy_static = { workspace = true }
+regex = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+rand = { workspace = true }

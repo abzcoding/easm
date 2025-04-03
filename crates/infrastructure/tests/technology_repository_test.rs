@@ -55,13 +55,17 @@ async fn test_technology_repository_basic_operations(pool: PgPool) -> Result<()>
     assert_eq!(updated_tech.version, Some("5.9.0".to_string()));
 
     // Test list
-    let technologies = tech_repo.list_technologies(Some(asset.id), 10, 0).await?;
+    let technologies = tech_repo
+        .list_technologies(Some(asset.id), None, None, 10, 0)
+        .await?;
 
     assert_eq!(technologies.len(), 1);
     assert_eq!(technologies[0].id, created_tech.id);
 
     // Test count
-    let count = tech_repo.count_technologies(Some(asset.id)).await?;
+    let count = tech_repo
+        .count_technologies(Some(asset.id), None, None)
+        .await?;
 
     assert_eq!(count, 1);
 
@@ -70,7 +74,9 @@ async fn test_technology_repository_basic_operations(pool: PgPool) -> Result<()>
     assert!(deleted);
 
     // Verify deleted
-    let count_after_delete = tech_repo.count_technologies(Some(asset.id)).await?;
+    let count_after_delete = tech_repo
+        .count_technologies(Some(asset.id), None, None)
+        .await?;
 
     assert_eq!(count_after_delete, 0);
 
@@ -130,22 +136,24 @@ async fn test_technology_repository_filters(pool: PgPool) -> Result<()> {
     }
 
     // Test filter by asset_id
-    let asset1_techs = tech_repo.list_technologies(Some(asset1.id), 10, 0).await?;
+    let asset1_techs = tech_repo
+        .list_technologies(Some(asset1.id), None, None, 10, 0)
+        .await?;
 
     assert_eq!(asset1_techs.len(), 3);
 
     // Test pagination
-    let paginated_techs = tech_repo.list_technologies(None, 2, 0).await?;
+    let paginated_techs = tech_repo.list_technologies(None, None, None, 2, 0).await?;
 
     assert_eq!(paginated_techs.len(), 2);
 
     // Second page
-    let second_page_techs = tech_repo.list_technologies(None, 2, 2).await?;
+    let second_page_techs = tech_repo.list_technologies(None, None, None, 2, 2).await?;
 
     assert_eq!(second_page_techs.len(), 2);
 
     // Count all
-    let count_all = tech_repo.count_technologies(None).await?;
+    let count_all = tech_repo.count_technologies(None, None, None).await?;
     assert_eq!(count_all, 5);
 
     Ok(())

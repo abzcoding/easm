@@ -89,9 +89,9 @@ mod tests {
             let filtered: Vec<DiscoveryJob> = jobs
                 .values()
                 .filter(|j| {
-                    organization_id.map_or(true, |oid| j.organization_id == oid)
-                        && job_type.map_or(true, |jt| j.job_type == jt)
-                        && status.map_or(true, |s| j.status == s)
+                    organization_id.is_none_or(|oid| j.organization_id == oid)
+                        && job_type.is_none_or(|jt| j.job_type == jt)
+                        && status.is_none_or(|s| j.status == s)
                 })
                 .cloned()
                 .collect();
@@ -110,9 +110,9 @@ mod tests {
             let count = jobs
                 .values()
                 .filter(|j| {
-                    organization_id.map_or(true, |oid| j.organization_id == oid)
-                        && job_type.map_or(true, |jt| j.job_type == jt)
-                        && status.map_or(true, |s| j.status == s)
+                    organization_id.is_none_or(|oid| j.organization_id == oid)
+                        && job_type.is_none_or(|jt| j.job_type == jt)
+                        && status.is_none_or(|s| j.status == s)
                 })
                 .count();
             Ok(count)
@@ -213,9 +213,9 @@ mod tests {
             let filtered: Vec<Asset> = assets
                 .values()
                 .filter(|a| {
-                    organization_id.map_or(true, |oid| a.organization_id == oid)
-                        && asset_type.map_or(true, |at| a.asset_type == at)
-                        && status.map_or(true, |s| a.status == s)
+                    organization_id.is_none_or(|oid| a.organization_id == oid)
+                        && asset_type.is_none_or(|at| a.asset_type == at)
+                        && status.is_none_or(|s| a.status == s)
                 })
                 .cloned()
                 .collect();
@@ -236,9 +236,9 @@ mod tests {
             let count = assets
                 .values()
                 .filter(|a| {
-                    organization_id.map_or(true, |oid| a.organization_id == oid)
-                        && asset_type.map_or(true, |at| a.asset_type == at)
-                        && status.map_or(true, |s| a.status == s)
+                    organization_id.is_none_or(|oid| a.organization_id == oid)
+                        && asset_type.is_none_or(|at| a.asset_type == at)
+                        && status.is_none_or(|s| a.status == s)
                 })
                 .count();
 
@@ -325,12 +325,10 @@ mod tests {
             let filtered: Vec<Vulnerability> = vulnerabilities
                 .values()
                 .filter(|v| {
-                    asset_id.map_or(true, |aid| v.asset_id == aid)
-                        && port_id.map_or(true, |pid| {
-                            v.port_id.as_ref().map_or(false, |id| *id == pid)
-                        })
-                        && severity.map_or(true, |s| v.severity == s)
-                        && status.map_or(true, |s| v.status == s)
+                    asset_id.is_none_or(|aid| v.asset_id == aid)
+                        && port_id.is_none_or(|pid| v.port_id.as_ref().is_some_and(|id| *id == pid))
+                        && severity.is_none_or(|s| v.severity == s)
+                        && status.is_none_or(|s| v.status == s)
                 })
                 .cloned()
                 .collect();
@@ -352,12 +350,10 @@ mod tests {
             let count = vulnerabilities
                 .values()
                 .filter(|v| {
-                    asset_id.map_or(true, |aid| v.asset_id == aid)
-                        && port_id.map_or(true, |pid| {
-                            v.port_id.as_ref().map_or(false, |id| *id == pid)
-                        })
-                        && severity.map_or(true, |s| v.severity == s)
-                        && status.map_or(true, |s| v.status == s)
+                    asset_id.is_none_or(|aid| v.asset_id == aid)
+                        && port_id.is_none_or(|pid| v.port_id.as_ref().is_some_and(|id| *id == pid))
+                        && severity.is_none_or(|s| v.severity == s)
+                        && status.is_none_or(|s| v.status == s)
                 })
                 .count();
 
@@ -397,7 +393,7 @@ mod tests {
             // Create a new job
             let job = DiscoveryJob::new(
                 organization_id,
-                job_types.get(0).copied().unwrap_or(JobType::DnsEnum),
+                job_types.first().copied().unwrap_or(JobType::DnsEnum),
                 Some(domain.to_string()),
                 None,
             );

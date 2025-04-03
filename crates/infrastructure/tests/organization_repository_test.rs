@@ -84,7 +84,7 @@ mod tests {
 
         // List with limit and offset
         let orgs_page1 = org_repo
-            .list_organizations(2, initial_count + 0)
+            .list_organizations(2, initial_count)
             .await
             .expect("Failed to list orgs page 1");
         assert_eq!(orgs_page1.len(), 2);
@@ -99,7 +99,7 @@ mod tests {
 
         // List with limit larger than remaining items
         let orgs_page_large = org_repo
-            .list_organizations(10, initial_count + 0)
+            .list_organizations(10, initial_count)
             .await
             .expect("Failed to list orgs large page");
         assert_eq!(orgs_page_large.len(), 3);

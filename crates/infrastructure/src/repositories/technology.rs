@@ -125,11 +125,106 @@ impl TechnologyRepository for PgTechnologyRepository {
     async fn list_technologies(
         &self,
         asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
         limit: usize,
         offset: usize,
     ) -> Result<Vec<Technology>> {
-        let technologies = match asset_id {
-            Some(id) => {
+        let technologies = if let Some(id) = asset_id {
+            // We have an asset ID filter
+            if let (Some(name_filter), Some(category_filter)) = (&name, &category) {
+                // Asset ID + name + category filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE asset_id = $1 AND name ILIKE $2 AND category ILIKE $3
+                    ORDER BY name
+                    LIMIT $4 OFFSET $5
+                    "#,
+                    id,
+                    format!("%{}%", name_filter),
+                    format!("%{}%", category_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else if let Some(name_filter) = &name {
+                // Asset ID + name filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE asset_id = $1 AND name ILIKE $2
+                    ORDER BY name
+                    LIMIT $3 OFFSET $4
+                    "#,
+                    id,
+                    format!("%{}%", name_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else if let Some(category_filter) = &category {
+                // Asset ID + category filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE asset_id = $1 AND category ILIKE $2
+                    ORDER BY name
+                    LIMIT $3 OFFSET $4
+                    "#,
+                    id,
+                    format!("%{}%", category_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else {
+                // Only asset ID filter
                 let records = sqlx::query!(
                     r#"
                     SELECT id, asset_id, name, version, category, created_at, updated_at
@@ -158,7 +253,98 @@ impl TechnologyRepository for PgTechnologyRepository {
                     })
                     .collect()
             }
-            None => {
+        } else {
+            // No asset ID filter
+            if let (Some(name_filter), Some(category_filter)) = (&name, &category) {
+                // Name + category filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE name ILIKE $1 AND category ILIKE $2
+                    ORDER BY name
+                    LIMIT $3 OFFSET $4
+                    "#,
+                    format!("%{}%", name_filter),
+                    format!("%{}%", category_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else if let Some(name_filter) = &name {
+                // Only name filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE name ILIKE $1
+                    ORDER BY name
+                    LIMIT $2 OFFSET $3
+                    "#,
+                    format!("%{}%", name_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else if let Some(category_filter) = &category {
+                // Only category filter
+                let records = sqlx::query!(
+                    r#"
+                    SELECT id, asset_id, name, version, category, created_at, updated_at
+                    FROM technologies
+                    WHERE category ILIKE $1
+                    ORDER BY name
+                    LIMIT $2 OFFSET $3
+                    "#,
+                    format!("%{}%", category_filter),
+                    limit as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?;
+
+                records
+                    .into_iter()
+                    .map(|record| Technology {
+                        id: record.id,
+                        asset_id: record.asset_id,
+                        name: record.name,
+                        version: record.version,
+                        category: record.category,
+                        created_at: from_offset_datetime(Some(record.created_at)),
+                        updated_at: from_offset_datetime(Some(record.updated_at)),
+                    })
+                    .collect()
+            } else {
+                // No filters
                 let records = sqlx::query!(
                     r#"
                     SELECT id, asset_id, name, version, category, created_at, updated_at
@@ -190,26 +376,113 @@ impl TechnologyRepository for PgTechnologyRepository {
         Ok(technologies)
     }
 
-    async fn count_technologies(&self, asset_id: Option<ID>) -> Result<usize> {
-        let count = match asset_id {
-            Some(id) => {
+    async fn count_technologies(
+        &self,
+        asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
+    ) -> Result<usize> {
+        let count = if let Some(id) = asset_id {
+            // We have an asset ID filter
+            if let (Some(name_filter), Some(category_filter)) = (&name, &category) {
+                // Asset ID + name + category filter
                 sqlx::query_scalar!(
                     r#"
-                SELECT COUNT(*) as count
-                FROM technologies
-                WHERE asset_id = $1
-                "#,
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE asset_id = $1 AND name ILIKE $2 AND category ILIKE $3
+                    "#,
+                    id,
+                    format!("%{}%", name_filter),
+                    format!("%{}%", category_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else if let Some(name_filter) = &name {
+                // Asset ID + name filter
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE asset_id = $1 AND name ILIKE $2
+                    "#,
+                    id,
+                    format!("%{}%", name_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else if let Some(category_filter) = &category {
+                // Asset ID + category filter
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE asset_id = $1 AND category ILIKE $2
+                    "#,
+                    id,
+                    format!("%{}%", category_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else {
+                // Only asset ID filter
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE asset_id = $1
+                    "#,
                     id
                 )
                 .fetch_one(&self.pool)
                 .await?
             }
-            None => {
+        } else {
+            // No asset ID filter
+            if let (Some(name_filter), Some(category_filter)) = (&name, &category) {
+                // Name + category filter
                 sqlx::query_scalar!(
                     r#"
-                SELECT COUNT(*) as count
-                FROM technologies
-                "#
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE name ILIKE $1 AND category ILIKE $2
+                    "#,
+                    format!("%{}%", name_filter),
+                    format!("%{}%", category_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else if let Some(name_filter) = &name {
+                // Only name filter
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE name ILIKE $1
+                    "#,
+                    format!("%{}%", name_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else if let Some(category_filter) = &category {
+                // Only category filter
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    WHERE category ILIKE $1
+                    "#,
+                    format!("%{}%", category_filter)
+                )
+                .fetch_one(&self.pool)
+                .await?
+            } else {
+                // No filters
+                sqlx::query_scalar!(
+                    r#"
+                    SELECT COUNT(*) as count
+                    FROM technologies
+                    "#
                 )
                 .fetch_one(&self.pool)
                 .await?

@@ -40,7 +40,7 @@ async fn test_organization_repository(pool: PgPool) -> sqlx::Result<()> {
 
     // List organizations
     let orgs = org_repo.list_organizations(10, 0).await.unwrap();
-    assert!(orgs.len() > 0);
+    assert!(!orgs.is_empty());
 
     // Count organizations
     let count = org_repo.count_organizations().await.unwrap();
@@ -108,7 +108,7 @@ async fn test_user_repository(pool: PgPool) -> sqlx::Result<()> {
         .list_users(Some(created_org.id), None, 10, 0)
         .await
         .unwrap();
-    assert!(users.len() > 0);
+    assert!(!users.is_empty());
 
     // Count users
     let count = user_repo
@@ -176,7 +176,7 @@ async fn test_asset_repository(pool: PgPool) -> sqlx::Result<()> {
         )
         .await
         .unwrap();
-    assert!(assets.len() > 0);
+    assert!(!assets.is_empty());
 
     // Count assets
     let count = asset_repo

@@ -33,6 +33,7 @@ hyper = { version = "1.6", features = ["server", "http1", "http2"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 jsonwebtoken = { version = "9.3" }
 rand = "0.9"
+getrandom = "0.3"
 redis = { version = "0.29", features = ["tokio-comp"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -43,10 +44,10 @@ sqlx = { version = "0.8.3", features = [
   "uuid",
   "macros",
   "chrono",
-  "json", 
-  "bigdecimal", 
-  "time", 
-  "migrate"
+  "json",
+  "bigdecimal",
+  "time",
+  "migrate",
 ] }
 thiserror = "2.0"
 time = { version = "0.3", features = ["serde"] }
@@ -70,20 +71,44 @@ tower-service = "0.3"
 anyhow = "1.0"
 tracing = { version = "0.1", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-uuid = { version = "1", features = ["v4", "serde", "fast-rng", "js"] }
+uuid = { version = "1.16", features = [
+  "v4",
+  "serde",
+  "fast-rng",
+  "js",
+  # "wasm-bindgen",
+] }
 validator = { version = "0.20", features = ["derive"] }
 scraper = { version = "0.23", features = ["serde"] }
 trust-dns-resolver = "0.23"
 url = { version = "2.4", features = ["serde"] }
+regex = "1.11"
 lazy_static = "1.4"
+
 # frontend
 gloo = "0.11"
 leptos = { version = "0.7", features = ["csr", "nightly"] }
-leptos_router = { version = "0.7", features = ["ssr"] }
+leptos_router = { version = "0.7", features = ["ssr", "nightly"] }
+leptos_meta = { version = "0.7", features = ["ssr"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 js-sys = "0.3"
 wasm-bindgen = "0.2"
-web-sys = "0.3"
+web-sys = { version = "0.3", features = [
+  "HtmlInputElement",
+  "HtmlSelectElement",
+  "ScrollToOptions",
+  "ScrollBehavior",
+  "Storage",
+  "Headers",
+  "Request",
+  "RequestInit",
+  "RequestMode",
+  "Response",
+  "Window",
+] }
+console_error_panic_hook = "0.1.7"
+log = "0.4"
+console_log = "1.0.0"
 
 # dev
 serial_test = "3.2"

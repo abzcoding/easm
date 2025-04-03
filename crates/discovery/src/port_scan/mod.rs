@@ -1,4 +1,4 @@
-use crate::results::DiscoveryResult;
+use crate::results::{DiscoveredIp, DiscoveryResult};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,9 +19,6 @@ pub struct DiscoveredPort {
     pub banner: Option<String>,
     pub source: String,
 }
-
-// Add DiscoveredPort to DiscoveryResult enum
-// Need to modify crates/discovery/src/results.rs for this
 
 const TCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
 const UDP_PROBE_TIMEOUT: Duration = Duration::from_secs(3);
@@ -60,10 +57,10 @@ lazy_static::lazy_static! {
     };
 }
 
-pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<Vec<DiscoveryResult>> {
+pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<DiscoveryResult> {
     tracing::debug!("Scanning IP: {} for {} ports", target_ip, ports.len());
 
-    let (tx, mut rx) = mpsc::channel(ports.len() * 2); // Channel for results (TCP + UDP)
+    let (tx, mut rx) = mpsc::channel::<DiscoveredPort>(ports.len() * 2); // Channel for port results
     let source_base = format!("port_scan_for_{}", target_ip);
 
     // Use a semaphore to limit concurrent scans
@@ -90,11 +87,7 @@ pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<Vec<DiscoveryRe
                     open_ports.lock().await.push(port);
                 }
 
-                if tx_clone
-                    .send(DiscoveryResult::Port(port_info))
-                    .await
-                    .is_err()
-                {
+                if tx_clone.send(port_info).await.is_err() {
                     tracing::error!(
                         "Failed to send TCP port scan result for {}:{}",
                         target_ip,
@@ -123,11 +116,7 @@ pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<Vec<DiscoveryRe
                 let udp_result = scan_udp_port(target_ip, port, source).await;
 
                 if let Some(port_info) = udp_result {
-                    if tx_clone
-                        .send(DiscoveryResult::Port(port_info))
-                        .await
-                        .is_err()
-                    {
+                    if tx_clone.send(port_info).await.is_err() {
                         tracing::error!(
                             "Failed to send UDP port scan result for {}:{}",
                             target_ip,
@@ -145,6 +134,15 @@ pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<Vec<DiscoveryRe
     // Drop the original sender to close the channel when all tasks are done
     drop(tx);
 
+    // Create a single DiscoveryResult to hold all findings
+    let mut discovery_result = DiscoveryResult::new();
+
+    // Add the target IP to the discovery result
+    discovery_result.ip_addresses.push(DiscoveredIp {
+        ip_address: target_ip,
+        source: format!("port_scan_target_{}", target_ip),
+    });
+
     // Perform banner grabbing for open TCP ports
     let open_ports = open_tcp_ports.lock().await.clone();
     if !open_ports.is_empty() {
@@ -155,35 +153,27 @@ pub async fn scan_ip(target_ip: IpAddr, ports: &[u16]) -> Result<Vec<DiscoveryRe
 
         let banner_results = grab_banners(target_ip, &open_ports, &source_base).await?;
 
-        // Update original scan results with banner information
-        let mut results = Vec::new();
-        while let Some(result) = rx.recv().await {
-            if let DiscoveryResult::Port(mut port_info) = result {
-                // If we have banner info for this port, add it
-                if let Some(banner_data) = banner_results.get(&port_info.port) {
-                    port_info.banner = Some(banner_data.banner.clone());
+        // Collect ports and update with banner information
+        while let Some(mut port_info) = rx.recv().await {
+            // If we have banner info for this port, add it
+            if let Some(banner_data) = banner_results.get(&port_info.port) {
+                port_info.banner = Some(banner_data.banner.clone());
 
-                    // If we detected a service from the banner, use it
-                    if !banner_data.detected_service.is_empty() {
-                        port_info.service_name = Some(banner_data.detected_service.clone());
-                    }
+                // If we detected a service from the banner, use it
+                if !banner_data.detected_service.is_empty() {
+                    port_info.service_name = Some(banner_data.detected_service.clone());
                 }
-                results.push(DiscoveryResult::Port(port_info));
-            } else {
-                results.push(result);
             }
+            discovery_result.ports.push(port_info);
         }
-
-        return Ok(results);
+    } else {
+        // No open ports for banner grabbing, just collect the scan results
+        while let Some(port_info) = rx.recv().await {
+            discovery_result.ports.push(port_info);
+        }
     }
 
-    // No open ports for banner grabbing, just collect the scan results
-    let mut results = Vec::new();
-    while let Some(result) = rx.recv().await {
-        results.push(result);
-    }
-
-    Ok(results)
+    Ok(discovery_result)
 }
 
 async fn scan_tcp_port(ip: IpAddr, port: u16, source: String) -> Option<DiscoveredPort> {

@@ -79,9 +79,9 @@ mod tests {
             let filtered: Vec<Asset> = assets
                 .values()
                 .filter(|a| {
-                    organization_id.map_or(true, |oid| a.organization_id == oid)
-                        && asset_type.map_or(true, |at| a.asset_type == at)
-                        && status.map_or(true, |s| a.status == s)
+                    organization_id.is_none_or(|oid| a.organization_id == oid)
+                        && asset_type.is_none_or(|at| a.asset_type == at)
+                        && status.is_none_or(|s| a.status == s)
                 })
                 .cloned()
                 .collect();
@@ -102,9 +102,9 @@ mod tests {
             let count = assets
                 .values()
                 .filter(|a| {
-                    organization_id.map_or(true, |oid| a.organization_id == oid)
-                        && asset_type.map_or(true, |at| a.asset_type == at)
-                        && status.map_or(true, |s| a.status == s)
+                    organization_id.is_none_or(|oid| a.organization_id == oid)
+                        && asset_type.is_none_or(|at| a.asset_type == at)
+                        && status.is_none_or(|s| a.status == s)
                 })
                 .count();
 

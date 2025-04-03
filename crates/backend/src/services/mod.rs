@@ -1,13 +1,13 @@
 mod asset_service;
 mod discovery_service;
 mod organization_service;
+pub mod technology_service;
 mod user_service;
 mod vulnerability_service;
-pub mod technology_service;
 
 pub use asset_service::AssetServiceImpl;
 pub use discovery_service::DiscoveryServiceImpl;
 pub use organization_service::OrganizationServiceImpl;
+pub use technology_service::TechnologyServiceImpl;
 pub use user_service::UserServiceImpl;
 pub use vulnerability_service::VulnerabilityServiceImpl;
-pub use technology_service::TechnologyServiceImpl;

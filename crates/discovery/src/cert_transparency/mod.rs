@@ -12,7 +12,7 @@ struct CrtShEntry {
     name_value: Option<String>,
 }
 
-pub async fn monitor_logs(domain: &str) -> Result<Vec<DiscoveryResult>> {
+pub async fn monitor_logs(domain: &str) -> Result<DiscoveryResult> {
     tracing::debug!("Monitoring Certificate Transparency logs for: {}", domain);
     let client = Client::builder()
         .user_agent("EASM Discovery Bot/0.1")
@@ -20,7 +20,7 @@ pub async fn monitor_logs(domain: &str) -> Result<Vec<DiscoveryResult>> {
         .build()?;
 
     let url = format!("https://crt.sh/?q={}&output=json", domain);
-    let mut results: Vec<DiscoveryResult> = Vec::new();
+    let mut discovery_result = DiscoveryResult::new();
     let mut found_domains: HashSet<String> = HashSet::new();
     let source = format!("crt.sh_for_{}", domain);
 
@@ -69,14 +69,14 @@ pub async fn monitor_logs(domain: &str) -> Result<Vec<DiscoveryResult>> {
     for found_domain in found_domains {
         // Basic filtering: avoid wildcards for now, ensure it looks like a domain
         if !found_domain.starts_with("*.") && found_domain.contains('.') {
-            results.push(DiscoveryResult::Domain(DiscoveredDomain {
+            discovery_result.domains.push(DiscoveredDomain {
                 domain_name: found_domain,
                 source: source.clone(),
-            }));
+            });
         }
     }
 
-    Ok(results)
+    Ok(discovery_result)
 }
 
 // Helper to clean up and potentially add a domain string to the set

@@ -141,11 +141,51 @@ pub trait TechnologyRepository: Send + Sync + 'static {
     async fn list_technologies(
         &self,
         asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
         limit: usize,
         offset: usize,
     ) -> Result<Vec<Technology>>;
 
-    async fn count_technologies(&self, asset_id: Option<ID>) -> Result<usize>;
+    async fn count_technologies(
+        &self,
+        asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
+    ) -> Result<usize>;
+}
+
+#[async_trait]
+pub trait TechnologyService: Send + Sync + 'static {
+    async fn create_technology(&self, technology: &Technology) -> Result<Technology>;
+
+    async fn get_technology(&self, id: ID) -> Result<Technology>;
+
+    async fn update_technology(&self, technology: &Technology) -> Result<Technology>;
+
+    async fn delete_technology(&self, id: ID) -> Result<bool>;
+
+    async fn list_technologies(
+        &self,
+        asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<Technology>>;
+
+    async fn count_technologies(
+        &self,
+        asset_id: Option<ID>,
+        name: Option<String>,
+        category: Option<String>,
+    ) -> Result<usize>;
+
+    /// Get technology statistics for an organization
+    async fn get_technology_statistics(
+        &self,
+        organization_id: ID,
+    ) -> Result<std::collections::HashMap<String, usize>>;
 }
 
 #[async_trait]
