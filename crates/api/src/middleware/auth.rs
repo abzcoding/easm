@@ -37,13 +37,8 @@ pub async fn auth_middleware(
     let auth_header = req
         .headers()
         .get(header::AUTHORIZATION)
-        .and_then(|header| header.to_str().ok());
-
-    let auth_header = if let Some(auth_header) = auth_header {
-        auth_header
-    } else {
-        return Err(ApiError::Unauthorized);
-    };
+        .and_then(|header| header.to_str().ok())
+        .ok_or(ApiError::Unauthorized)?;
 
     // Check if it's a Bearer token
     if !auth_header.starts_with("Bearer ") {

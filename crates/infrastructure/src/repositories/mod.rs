@@ -1,6 +1,6 @@
 mod asset;
 mod discovery_job;
-mod factory;
+pub mod factory;
 mod organization;
 mod port;
 mod technology;

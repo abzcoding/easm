@@ -174,84 +174,61 @@ impl DiscoveryJobRepository for PgDiscoveryJobRepository {
     async fn list_jobs(
         &self,
         organization_id: Option<ID>,
-        _job_type: Option<JobType>,
-        _status: Option<JobStatus>,
+        job_type: Option<JobType>,
+        status: Option<JobStatus>,
         limit: usize,
         offset: usize,
     ) -> Result<Vec<DiscoveryJob>> {
-        // Simplified implementation that only handles organization_id filter
-        let jobs = match organization_id {
-            Some(org_id) => {
-                let records = sqlx::query!(
-                    r#"
-                    SELECT
-                        id, organization_id, job_type as "job_type: JobType", status as "status: JobStatus", 
-                        target, started_at, completed_at, logs, configuration, created_at, updated_at
-                    FROM discovery_jobs
-                    WHERE organization_id = $1
-                    ORDER BY created_at DESC
-                    LIMIT $2 OFFSET $3
-                    "#,
-                    org_id,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(&self.pool)
-                .await?;
-                records
-                    .into_iter()
-                    .map(|record| DiscoveryJob {
-                        id: record.id,
-                        organization_id: record.organization_id,
-                        job_type: record.job_type,
-                        status: record.status,
-                        target: record.target,
-                        started_at: from_option_offset_datetime(record.started_at),
-                        completed_at: from_option_offset_datetime(record.completed_at),
-                        logs: record.logs,
-                        configuration: record
-                            .configuration
-                            .expect("Job configuration should not be null"),
-                        created_at: from_offset_datetime(Some(record.created_at)),
-                        updated_at: from_offset_datetime(Some(record.updated_at)),
-                    })
-                    .collect()
-            }
-            None => {
-                let records = sqlx::query!(
-                    r#"
-                    SELECT
-                        id, organization_id, job_type as "job_type: JobType", status as "status: JobStatus", 
-                        target, started_at, completed_at, logs, configuration, created_at, updated_at
-                    FROM discovery_jobs
-                    ORDER BY created_at DESC
-                    LIMIT $1 OFFSET $2
-                    "#,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(&self.pool)
-                .await?;
-                records
-                    .into_iter()
-                    .map(|record| DiscoveryJob {
-                        id: record.id,
-                        organization_id: record.organization_id,
-                        job_type: record.job_type,
-                        status: record.status,
-                        target: record.target,
-                        started_at: from_option_offset_datetime(record.started_at),
-                        completed_at: from_option_offset_datetime(record.completed_at),
-                        logs: record.logs,
-                        configuration: record
-                            .configuration
-                            .expect("Job configuration should not be null"),
-                        created_at: from_offset_datetime(Some(record.created_at)),
-                        updated_at: from_offset_datetime(Some(record.updated_at)),
-                    })
-                    .collect()
-            }
-        };
+        let mut query_builder = sqlx::QueryBuilder::new(
+            r#"
+            SELECT
+                id, organization_id, job_type, status,
+                target, started_at, completed_at, logs, configuration, created_at, updated_at
+            FROM discovery_jobs
+            WHERE 1 = 1
+            "#,
+        );
+
+        if let Some(org_id) = organization_id {
+            query_builder.push(" AND organization_id = ");
+            query_builder.push_bind(org_id);
+        }
+        if let Some(jt) = job_type {
+            query_builder.push(" AND job_type = ");
+            query_builder.push_bind(jt as JobType);
+        }
+        if let Some(st) = status {
+            query_builder.push(" AND status = ");
+            query_builder.push_bind(st as JobStatus);
+        }
+
+        query_builder.push(" ORDER BY created_at DESC LIMIT ");
+        query_builder.push_bind(limit as i64);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset as i64);
+
+        let query = query_builder.build();
+        let records = query.fetch_all(&self.pool).await?;
+
+        let jobs = records
+            .into_iter()
+            .map(|row| {
+                use sqlx::Row;
+                Ok(DiscoveryJob {
+                    id: row.try_get("id")?,
+                    organization_id: row.try_get("organization_id")?,
+                    job_type: row.try_get("job_type")?,
+                    status: row.try_get("status")?,
+                    target: row.try_get("target")?,
+                    started_at: from_option_offset_datetime(row.try_get("started_at")?),
+                    completed_at: from_option_offset_datetime(row.try_get("completed_at")?),
+                    logs: row.try_get("logs")?,
+                    configuration: row.try_get("configuration")?,
+                    created_at: from_offset_datetime(Some(row.try_get("created_at")?)),
+                    updated_at: from_offset_datetime(Some(row.try_get("updated_at")?)),
+                })
+            })
+            .collect::<Result<Vec<DiscoveryJob>>>()?;
 
         Ok(jobs)
     }
@@ -259,35 +236,29 @@ impl DiscoveryJobRepository for PgDiscoveryJobRepository {
     async fn count_jobs(
         &self,
         organization_id: Option<ID>,
-        _job_type: Option<JobType>,
-        _status: Option<JobStatus>,
+        job_type: Option<JobType>,
+        status: Option<JobStatus>,
     ) -> Result<usize> {
-        let count = match organization_id {
-            Some(org_id) => {
-                sqlx::query_scalar!(
-                    r#"
-                SELECT COUNT(*) as count
-                FROM discovery_jobs
-                WHERE organization_id = $1
-                "#,
-                    org_id
-                )
-                .fetch_one(&self.pool)
-                .await?
-            }
-            None => {
-                sqlx::query_scalar!(
-                    r#"
-                SELECT COUNT(*) as count
-                FROM discovery_jobs
-                "#
-                )
-                .fetch_one(&self.pool)
-                .await?
-            }
-        };
+        let mut query_builder =
+            sqlx::QueryBuilder::new("SELECT COUNT(*) FROM discovery_jobs WHERE 1 = 1");
 
-        Ok(count.unwrap_or(0) as usize)
+        if let Some(org_id) = organization_id {
+            query_builder.push(" AND organization_id = ");
+            query_builder.push_bind(org_id);
+        }
+        if let Some(jt) = job_type {
+            query_builder.push(" AND job_type = ");
+            query_builder.push_bind(jt as JobType);
+        }
+        if let Some(st) = status {
+            query_builder.push(" AND status = ");
+            query_builder.push_bind(st as JobStatus);
+        }
+
+        let query = query_builder.build_query_scalar();
+        let count: i64 = query.fetch_one(&self.pool).await?;
+
+        Ok(count as usize)
     }
 
     async fn create_job_asset_link(&self, link: &JobAssetLink) -> Result<JobAssetLink> {
@@ -295,7 +266,6 @@ impl DiscoveryJobRepository for PgDiscoveryJobRepository {
             r#"
             INSERT INTO job_asset_links (job_id, asset_id)
             VALUES ($1, $2)
-            ON CONFLICT (job_id, asset_id) DO NOTHING
             "#,
             link.job_id,
             link.asset_id

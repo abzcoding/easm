@@ -89,7 +89,7 @@ pub enum JobStatus {
     Failed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord)]
 #[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum UserRole {
@@ -100,3 +100,25 @@ pub enum UserRole {
 pub type ID = Uuid;
 
 pub type Timestamp = chrono::DateTime<chrono::Utc>;
+
+/// Parameters for pagination
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct PaginationParams {
+    pub page: u32,
+    pub page_size: u32,
+}
+
+impl Default for PaginationParams {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            page_size: 10,
+        }
+    }
+}
+
+impl PaginationParams {
+    pub fn offset(&self) -> u32 {
+        (self.page.saturating_sub(1)) * self.page_size
+    }
+}
