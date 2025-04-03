@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use backend::{
-    services::{AssetServiceImpl, DiscoveryServiceImpl, VulnerabilityServiceImpl},
-    AssetService, DiscoveryService, VulnerabilityService,
+    services::{AssetServiceImpl, DiscoveryServiceImpl, OrganizationServiceImpl, VulnerabilityServiceImpl, UserService},
+    AssetService, DiscoveryService, OrganizationService, VulnerabilityService, UserService as UserServiceTrait,
+    UserRepository,
 };
 use infrastructure::{database::Database, repositories::RepositoryFactory};
 use redis::Client as RedisClient;
@@ -18,6 +19,8 @@ pub struct AppState {
     pub asset_service: Arc<dyn AssetService>,
     pub vulnerability_service: Arc<dyn VulnerabilityService>,
     pub discovery_service: Arc<dyn DiscoveryService>,
+    pub user_service: Arc<dyn UserServiceTrait>,
+    pub organization_service: Arc<dyn OrganizationService>,
 }
 
 impl AppState {
@@ -38,22 +41,22 @@ impl AppState {
             None
         };
 
-        // The unused variables are marked with _ to avoid warnings
-        let _asset_repo = repo_factory.asset_repository();
-        let _vulnerability_repo = repo_factory.vulnerability_repository();
-
-        // Create separate repository instances for each service
-        let asset_service_repo = repo_factory.create_asset_repository(db_pool.clone());
-        let vulnerability_repo = repo_factory.create_vulnerability_repository(db_pool.clone());
-        let discovery_service_repo = repo_factory.create_asset_repository(db_pool.clone());
+        // Create repository instances
+        let user_repo: Arc<dyn UserRepository> = repo_factory.user_repository();
+        let asset_repo = repo_factory.asset_repository();
+        let vulnerability_repo = repo_factory.vulnerability_repository();
+        let discovery_asset_repo = repo_factory.asset_repository();
+        let organization_repo = repo_factory.organization_repository();
 
         // Create services
-        let asset_service: Arc<dyn AssetService> =
-            Arc::new(AssetServiceImpl::new(asset_service_repo));
+        let user_service: Arc<dyn UserServiceTrait> = Arc::new(UserService::new(user_repo));
+        let asset_service: Arc<dyn AssetService> = Arc::new(AssetServiceImpl::new(asset_repo));
         let vulnerability_service: Arc<dyn VulnerabilityService> =
             Arc::new(VulnerabilityServiceImpl::new(vulnerability_repo));
         let discovery_service: Arc<dyn DiscoveryService> =
-            Arc::new(DiscoveryServiceImpl::new(discovery_service_repo));
+            Arc::new(DiscoveryServiceImpl::new(discovery_asset_repo));
+        let organization_service: Arc<dyn OrganizationService> =
+            Arc::new(OrganizationServiceImpl::new(organization_repo));
 
         Ok(Self {
             config: config.clone(),
@@ -62,6 +65,8 @@ impl AppState {
             asset_service,
             vulnerability_service,
             discovery_service,
+            user_service,
+            organization_service,
         })
     }
 }

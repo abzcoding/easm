@@ -1,4 +1,8 @@
-use axum::{routing::get, Router};
+use axum::{
+    middleware::from_fn_with_state,
+    routing::get,
+    Router
+};
 use std::sync::Arc;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -8,12 +12,18 @@ use tower_http::{
 use crate::{
     handlers::{
         asset_handler::{create_asset, delete_asset, get_asset, list_assets, update_asset},
+        auth_handler::{login, register},
         health_handler::health_check,
+        organization_handler::{
+            create_organization, delete_organization, get_organization, list_organizations,
+            update_organization,
+        },
         vulnerability_handler::{
             create_vulnerability, delete_vulnerability, get_vulnerability, list_vulnerabilities,
             update_vulnerability,
         },
     },
+    middleware::auth::auth_middleware,
     state::AppState,
 };
 
@@ -32,31 +42,52 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         // Health check endpoint (no auth)
         .route("/health", get(health_check))
-        // API routes (with auth)
+        // API routes
         .nest(
             "/api",
             Router::new()
-                // Assets API
-                .route("/assets", get(list_assets).post(create_asset))
-                .route(
-                    "/assets/{id}",
-                    get(get_asset).put(update_asset).delete(delete_asset),
+                // Auth routes (NO middleware)
+                .nest(
+                    "/auth",
+                    Router::new()
+                        .route("/register", axum::routing::post(register))
+                        .route("/login", axum::routing::post(login)),
                 )
-                // Vulnerabilities API
-                .route(
-                    "/vulnerabilities",
-                    get(list_vulnerabilities).post(create_vulnerability),
-                )
-                .route(
-                    "/vulnerabilities/{id}",
-                    get(get_vulnerability)
-                        .put(update_vulnerability)
-                        .delete(delete_vulnerability),
+                // Protected routes (WITH middleware)
+                .nest(
+                    "/", // Nest other routes under the root of /api
+                    Router::new()
+                        // Organizations API
+                        .route("/organizations", get(list_organizations).post(create_organization))
+                        .route(
+                            "/organizations/{id}",
+                            get(get_organization).put(update_organization).delete(delete_organization),
+                        )
+                        // Assets API
+                        .route("/assets", get(list_assets).post(create_asset))
+                        .route(
+                            "/assets/{id}",
+                            get(get_asset).put(update_asset).delete(delete_asset),
+                        )
+                        // Vulnerabilities API
+                        .route(
+                            "/vulnerabilities",
+                            get(list_vulnerabilities).post(create_vulnerability),
+                        )
+                        .route(
+                            "/vulnerabilities/{id}",
+                            get(get_vulnerability)
+                                .put(update_vulnerability)
+                                .delete(delete_vulnerability),
+                        )
+                        // Apply auth middleware to these routes
+                        .route_layer(from_fn_with_state(state.clone(), auth_middleware)),
                 ),
         )
         // Add state
         .with_state(state)
-        // Add middleware
+        // Add middleware (cors applies to all routes, including /health)
+        // TraceLayer also applies to all routes
         .layer(TraceLayer::new_for_http())
         .layer(cors)
 }

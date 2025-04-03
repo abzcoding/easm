@@ -88,14 +88,14 @@ async fn test_user_repository(pool: PgPool) -> sqlx::Result<()> {
 
     // Get by username
     let user_by_username = user_repo.get_user_by_username("testuser").await.unwrap();
-    assert_eq!(user_by_username.id, created_user.id);
+    assert_eq!(user_by_username.unwrap().id, created_user.id);
 
     // Get by email
     let user_by_email = user_repo
         .get_user_by_email("test@example.com")
         .await
         .unwrap();
-    assert_eq!(user_by_email.id, created_user.id);
+    assert_eq!(user_by_email.unwrap().id, created_user.id);
 
     // Update user
     let mut updated_user = fetched_user.clone();

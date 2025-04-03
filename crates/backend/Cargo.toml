@@ -13,6 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 shared = { path = "../shared" }
 async-trait = {workspace = true}
+argon2 = { workspace = true }
 chrono = { workspace = true}
 rand = { workspace = true }
 serde = { workspace = true }

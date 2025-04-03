@@ -28,8 +28,8 @@ tower-service = { workspace = true }
 chrono = { workspace = true }
 
 [[test]]
-name = "util_tests"
-path = "util_tests.rs"
+name = "database_tests"
+path = "database_tests.rs"
 
 [[test]]
 name = "api_tests"

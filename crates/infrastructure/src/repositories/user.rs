@@ -91,7 +91,7 @@ impl UserRepository for PgUserRepository {
         })
     }
 
-    async fn get_user_by_username(&self, username: &str) -> Result<User> {
+    async fn get_user_by_username(&self, username: &str) -> Result<Option<User>> {
         let record = sqlx::query!(
             r#"
             SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
@@ -100,29 +100,24 @@ impl UserRepository for PgUserRepository {
             "#,
             username
         )
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
 
-        // Convert back from DB types to model types
-        Ok(User {
-            id: record.id,
-            organization_id: record
-                .organization_id
-                .expect("organization_id should not be null"),
-            username: record.username,
-            email: record.email,
-            role: record.role.expect("role should not be null"),
-            password_hash: record.password_hash,
-            created_at: from_offset_datetime(Some(
-                record.created_at.expect("created_at should not be null"),
-            )),
-            updated_at: from_offset_datetime(Some(
-                record.updated_at.expect("updated_at should not be null"),
-            )),
+        // Convert record to Option<User>
+        record.map(|r| User {
+            id: r.id,
+            organization_id: r.organization_id.expect("organization_id should not be null"),
+            username: r.username,
+            email: r.email,
+            role: r.role.expect("role should not be null"),
+            password_hash: r.password_hash,
+            created_at: from_offset_datetime(Some(r.created_at.expect("created_at should not be null"))),
+            updated_at: from_offset_datetime(Some(r.updated_at.expect("updated_at should not be null"))),
         })
+        .map_or(Ok(None), |u| Ok(Some(u)))
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User> {
+    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
         let record = sqlx::query!(
             r#"
             SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
@@ -131,26 +126,21 @@ impl UserRepository for PgUserRepository {
             "#,
             email
         )
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
 
-        // Convert back from DB types to model types
-        Ok(User {
-            id: record.id,
-            organization_id: record
-                .organization_id
-                .expect("organization_id should not be null"),
-            username: record.username,
-            email: record.email,
-            role: record.role.expect("role should not be null"),
-            password_hash: record.password_hash,
-            created_at: from_offset_datetime(Some(
-                record.created_at.expect("created_at should not be null"),
-            )),
-            updated_at: from_offset_datetime(Some(
-                record.updated_at.expect("updated_at should not be null"),
-            )),
+        // Convert record to Option<User>
+        record.map(|r| User {
+            id: r.id,
+            organization_id: r.organization_id.expect("organization_id should not be null"),
+            username: r.username,
+            email: r.email,
+            role: r.role.expect("role should not be null"),
+            password_hash: r.password_hash,
+            created_at: from_offset_datetime(Some(r.created_at.expect("created_at should not be null"))),
+            updated_at: from_offset_datetime(Some(r.updated_at.expect("updated_at should not be null"))),
         })
+        .map_or(Ok(None), |u| Ok(Some(u)))
     }
 
     async fn update_user(&self, user: &User) -> Result<User> {
@@ -420,5 +410,29 @@ impl UserRepository for PgUserRepository {
         };
 
         Ok(count.unwrap_or(0) as usize)
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>> {
+        let record = sqlx::query!(
+            r#"
+            SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
+            FROM users
+            WHERE email = $1
+            "#,
+            email
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(record.map(|r| User { 
+            id: r.id,
+            organization_id: r.organization_id.expect("organization_id should not be null"),
+            username: r.username,
+            email: r.email,
+            role: r.role.expect("role should not be null"),
+            password_hash: r.password_hash,
+            created_at: from_offset_datetime(Some(r.created_at.expect("created_at should not be null"))),
+            updated_at: from_offset_datetime(Some(r.updated_at.expect("updated_at should not be null"))),
+        }))
     }
 }

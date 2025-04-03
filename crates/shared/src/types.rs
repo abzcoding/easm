@@ -97,6 +97,19 @@ pub enum UserRole {
     Analyst,
 }
 
+// Implement FromStr for UserRole
+impl std::str::FromStr for UserRole {
+    type Err = String; // Simple error type
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "ADMIN" => Ok(UserRole::Admin),
+            "ANALYST" => Ok(UserRole::Analyst),
+            _ => Err(format!("Invalid user role: {}", s)),
+        }
+    }
+}
+
 pub type ID = Uuid;
 
 pub type Timestamp = chrono::DateTime<chrono::Utc>;

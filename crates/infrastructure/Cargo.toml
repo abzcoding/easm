@@ -24,8 +24,8 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
-testcontainers = "0.23.3"
-testcontainers-modules = { version = "0.11.6", features = ["postgres"] }
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
 
 [dev-dependencies]
 rand.workspace = true

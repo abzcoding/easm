@@ -32,13 +32,15 @@ pub trait UserRepository: Send + Sync + 'static {
 
     async fn get_user(&self, id: ID) -> Result<User>;
 
-    async fn get_user_by_username(&self, username: &str) -> Result<User>;
+    async fn get_user_by_username(&self, username: &str) -> Result<Option<User>>;
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User>;
+    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>>;
 
     async fn update_user(&self, user: &User) -> Result<User>;
 
     async fn delete_user(&self, id: ID) -> Result<bool>;
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>>;
 
     async fn list_users(
         &self,
@@ -257,4 +259,14 @@ pub trait VulnerabilityService: Send + Sync + 'static {
         severity: Option<Severity>,
         status: Option<VulnerabilityStatus>,
     ) -> Result<usize>;
+}
+
+#[async_trait]
+pub trait OrganizationService: Send + Sync + 'static {
+    async fn create_organization(&self, organization: &Organization) -> Result<Organization>;
+    async fn get_organization(&self, id: ID) -> Result<Organization>;
+    async fn update_organization(&self, organization: &Organization) -> Result<Organization>;
+    async fn delete_organization(&self, id: ID) -> Result<bool>;
+    async fn list_organizations(&self, limit: usize, offset: usize) -> Result<Vec<Organization>>;
+    async fn count_organizations(&self) -> Result<usize>;
 }

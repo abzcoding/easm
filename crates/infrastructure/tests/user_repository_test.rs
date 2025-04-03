@@ -48,14 +48,14 @@ mod tests {
             .get_user_by_username("testuser_crud")
             .await
             .expect("Failed to get user by username");
-        assert_eq!(found_by_username.id, created_user.id);
+        assert_eq!(found_by_username.unwrap().id, created_user.id);
 
         // 4. Get User by Email
         let found_by_email = user_repo
             .get_user_by_email("crud@example.com")
             .await
             .expect("Failed to get user by email");
-        assert_eq!(found_by_email.id, created_user.id);
+        assert_eq!(found_by_email.unwrap().id, created_user.id);
 
         // 5. Update User
         let mut user_to_update = found_user.clone();
