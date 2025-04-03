@@ -420,3 +420,6 @@ fn detect_service_from_banner(banner: &str, port: u16) -> String {
         .get(&port)
         .map_or(String::new(), |s| s.to_string())
 }
+
+// Add the naabu module
+pub mod naabu;

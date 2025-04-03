@@ -4,6 +4,9 @@ use reqwest::Client;
 use scraper::{Html, Selector};
 use url::Url;
 
+// Add the httpx module
+pub mod httpx;
+
 // Basic web crawler
 pub async fn crawl_url(target_url: &str, depth: u8) -> Result<DiscoveryResult> {
     tracing::debug!("Crawling URL: {} with depth: {}", target_url, depth);

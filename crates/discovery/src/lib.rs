@@ -4,4 +4,5 @@ pub mod fingerprinting;
 pub mod port_scan;
 pub mod results;
 pub mod tasks;
+pub mod vulnerability;
 pub mod web_crawl;

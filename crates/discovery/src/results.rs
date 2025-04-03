@@ -1,4 +1,5 @@
 use crate::port_scan::DiscoveredPort;
+use crate::vulnerability::DiscoveredVulnerability;
 use serde::{Deserialize, Serialize};
 use shared::types::ID;
 use std::collections::HashMap;
@@ -74,8 +75,10 @@ pub struct DiscoveryResult {
     pub web_resources: Vec<DiscoveredWebResource>,
     /// Discovered technologies
     pub technologies: Vec<TechnologyFinding>,
-    /// Discovered vulnerabilities
+    /// Discovered vulnerabilities (for database storage)
     pub vulnerabilities: Vec<VulnerabilityFinding>,
+    /// Raw vulnerability findings from scanners like Nuclei
+    pub raw_vulnerabilities: Vec<DiscoveredVulnerability>,
     /// Additional metadata from the discovery process
     pub metadata: HashMap<String, String>,
 }
@@ -90,6 +93,7 @@ impl DiscoveryResult {
             web_resources: Vec::new(),
             technologies: Vec::new(),
             vulnerabilities: Vec::new(),
+            raw_vulnerabilities: Vec::new(),
             metadata: HashMap::new(),
         }
     }
@@ -102,6 +106,26 @@ impl DiscoveryResult {
         self.web_resources.extend(other.web_resources);
         self.technologies.extend(other.technologies);
         self.vulnerabilities.extend(other.vulnerabilities);
+        self.raw_vulnerabilities.extend(other.raw_vulnerabilities);
         self.metadata.extend(other.metadata);
+    }
+
+    /// Convert raw vulnerabilities to VulnerabilityFindings
+    pub fn convert_raw_vulnerabilities(&mut self, asset_id: ID) {
+        for raw_vuln in &self.raw_vulnerabilities {
+            self.vulnerabilities.push(VulnerabilityFinding {
+                asset_id,
+                port_id: None, // Would need additional logic to match to a port
+                title: raw_vuln.name.clone(),
+                description: raw_vuln.description.clone(),
+                cve_id: raw_vuln.cve_id.clone(),
+                evidence: format!(
+                    "Found at: {}. Source: {}",
+                    raw_vuln.matched_at, raw_vuln.source
+                ),
+                severity: raw_vuln.severity.clone(),
+                remediation: None, // Nuclei doesn't consistently provide remediation
+            });
+        }
     }
 }
