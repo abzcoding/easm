@@ -262,16 +262,22 @@ pub trait DiscoveryService: Send + Sync + 'static {
     async fn scan_asset(&self, asset_id: ID) -> Result<Vec<Vulnerability>>;
 }
 
+/// Service for managing assets
 #[async_trait]
-pub trait AssetService: Send + Sync + 'static {
+pub trait AssetService: Send + Sync {
+    /// Create a new asset
     async fn create_asset(&self, asset: &Asset) -> Result<Asset>;
 
+    /// Get an asset by ID
     async fn get_asset(&self, id: ID) -> Result<Asset>;
 
+    /// Update an asset
     async fn update_asset(&self, asset: &Asset) -> Result<Asset>;
 
+    /// Delete an asset
     async fn delete_asset(&self, id: ID) -> Result<bool>;
 
+    /// List assets with filtering
     async fn list_assets(
         &self,
         organization_id: Option<ID>,
@@ -281,6 +287,7 @@ pub trait AssetService: Send + Sync + 'static {
         offset: usize,
     ) -> Result<Vec<Asset>>;
 
+    /// Count assets with filtering
     async fn count_assets(
         &self,
         organization_id: Option<ID>,
@@ -305,18 +312,35 @@ pub trait AssetService: Send + Sync + 'static {
         relationship_type: String,
     ) -> Result<bool>;
 
-    /// Get all related assets for a given asset
+    /// Get assets related to a specific asset
     async fn get_related_assets(
         &self,
         asset_id: ID,
         relationship_type: Option<String>,
     ) -> Result<Vec<(Asset, String)>>;
 
-    /// Find potential relationships between assets
+    /// Discover relationships between assets
     async fn discover_asset_relationships(
         &self,
         organization_id: ID,
     ) -> Result<Vec<(ID, ID, String)>>;
+
+    /// Analyze dependency chains for an asset
+    async fn analyze_dependency_chain(
+        &self,
+        asset_id: ID,
+        max_depth: usize,
+    ) -> Result<Vec<Vec<ID>>>;
+
+    /// Helper for finding dependency paths through depth-first search
+    async fn find_dependency_paths(
+        &self,
+        current_id: ID,
+        current_path: Vec<ID>,
+        all_paths: &mut Vec<Vec<ID>>,
+        visited: &mut std::collections::HashSet<ID>,
+        max_depth: usize,
+    ) -> Result<()>;
 }
 
 #[async_trait]
@@ -386,23 +410,23 @@ pub trait OrganizationService: Send + Sync + 'static {
     async fn count_organizations(&self) -> Result<usize>;
 }
 
-/// Service for sending notifications about findings and changes
+/// Service for handling notifications
 #[async_trait]
-pub trait NotificationService: Send + Sync + 'static {
-    /// Send a notification about a new vulnerability
+pub trait NotificationService: Send + Sync {
+    /// Send notification for a new vulnerability
     async fn notify_new_vulnerability(&self, vulnerability: &Vulnerability) -> Result<bool>;
 
-    /// Send a notification about a vulnerability status change
+    /// Send notification for vulnerability status change
     async fn notify_vulnerability_status_change(
         &self,
         vulnerability: &Vulnerability,
         old_status: VulnerabilityStatus,
     ) -> Result<bool>;
 
-    /// Send a notification about a new critical asset discovery
+    /// Send notification for a new critical asset
     async fn notify_new_critical_asset(&self, asset: &Asset) -> Result<bool>;
 
-    /// Send a summary report notification
+    /// Send periodic summary report
     async fn send_summary_report(
         &self,
         organization_id: ID,
@@ -418,6 +442,12 @@ pub trait NotificationService: Send + Sync + 'static {
         organization_id: ID,
         settings: &NotificationSettings,
     ) -> Result<NotificationSettings>;
+
+    /// Send batch notification for multiple new vulnerabilities
+    async fn notify_new_vulnerabilities_batch(
+        &self,
+        vulnerabilities: &[Vulnerability],
+    ) -> Result<bool>;
 }
 
 /// Period for notification reporting

@@ -227,6 +227,20 @@ pub enum AssetRelationshipType {
     CertificateFor,
     /// Asset is administratively related (e.g., part of same system)
     AdministrativelyRelated,
+    /// Asset from same registrar
+    SameRegistrar,
+    /// Asset from same issuer
+    SameIssuer,
+    /// Asset depends on another
+    DependsOn,
+    /// Asset secures another
+    Secures,
+    /// Asset is in the same network
+    SameNetwork,
+    /// Asset has a public IP
+    HasPublicIP,
+    /// Asset belongs to another
+    BelongsTo,
     /// Custom relationship type
     Custom(String),
 }
@@ -240,6 +254,13 @@ impl AssetRelationshipType {
             Self::DnsPointsTo => "dns_points_to".to_string(),
             Self::CertificateFor => "certificate_for".to_string(),
             Self::AdministrativelyRelated => "administratively_related".to_string(),
+            Self::SameRegistrar => "same_registrar".to_string(),
+            Self::SameIssuer => "same_issuer".to_string(),
+            Self::DependsOn => "depends_on".to_string(),
+            Self::Secures => "secures".to_string(),
+            Self::SameNetwork => "same_network".to_string(),
+            Self::HasPublicIP => "has_public_ip".to_string(),
+            Self::BelongsTo => "belongs_to".to_string(),
             Self::Custom(s) => s.clone(),
         }
     }
@@ -252,6 +273,13 @@ impl AssetRelationshipType {
             "dns_points_to" => Self::DnsPointsTo,
             "certificate_for" => Self::CertificateFor,
             "administratively_related" => Self::AdministrativelyRelated,
+            "same_registrar" => Self::SameRegistrar,
+            "same_issuer" => Self::SameIssuer,
+            "depends_on" => Self::DependsOn,
+            "secures" => Self::Secures,
+            "same_network" => Self::SameNetwork,
+            "has_public_ip" => Self::HasPublicIP,
+            "belongs_to" => Self::BelongsTo,
             _ => Self::Custom(s.to_string()),
         }
     }

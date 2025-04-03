@@ -9,7 +9,7 @@ use std::net::SocketAddr;
 
 use shared::{config::Config, errors::Result};
 use tower_http::trace::{self, TraceLayer};
-use tracing::Level;
+use tracing::{info, warn, Level};
 
 use crate::routes::create_router;
 use crate::state::AppState;
@@ -29,16 +29,17 @@ pub async fn run(config: Config) -> Result<()> {
     // Build the server address
     let addr = SocketAddr::from((config.host, config.port));
 
-    // Start the server
-    tracing::info!("Listening on {}", addr);
-
-    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
-        shared::errors::Error::external_service(format!("Failed to bind to address: {}", e))
+    // Bind to the address
+    let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
+        shared::errors::AppError::external_service(format!("Failed to bind to address: {}", e))
     })?;
 
+    info!("Listening on http://{}", addr);
+
+    // Start the server
     axum::serve(listener, app)
         .await
-        .map_err(|e| shared::errors::Error::external_service(format!("Server error: {}", e)))?;
+        .map_err(|e| shared::errors::AppError::external_service(format!("Server error: {}", e)))?;
 
     Ok(())
 }

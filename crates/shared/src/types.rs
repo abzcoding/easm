@@ -20,9 +20,12 @@ pub enum AssetType {
     WebApp,
     Certificate,
     CodeRepo,
+    CloudResource,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord, Hash,
+)]
 #[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Severity {

@@ -211,6 +211,65 @@ impl backend::AssetService for MockAssetService {
         // Return a fixed count
         Ok(2)
     }
+
+    async fn create_asset_relationship(
+        &self,
+        source_asset_id: ID,
+        target_asset_id: ID,
+        relationship_type: String,
+        _metadata: Option<serde_json::Value>,
+    ) -> Result<bool> {
+        // Mock implementation - always succeeds
+        Ok(true)
+    }
+
+    async fn delete_asset_relationship(
+        &self,
+        _source_asset_id: ID,
+        _target_asset_id: ID,
+        _relationship_type: String,
+    ) -> Result<bool> {
+        // Mock implementation - always succeeds
+        Ok(true)
+    }
+
+    async fn get_related_assets(
+        &self,
+        _asset_id: ID,
+        _relationship_type: Option<String>,
+    ) -> Result<Vec<(Asset, String)>> {
+        // Mock implementation - return empty list
+        Ok(Vec::new())
+    }
+
+    async fn discover_asset_relationships(
+        &self,
+        _organization_id: ID,
+    ) -> Result<Vec<(ID, ID, String)>> {
+        // Mock implementation - return empty list
+        Ok(Vec::new())
+    }
+
+    async fn analyze_dependency_chain(
+        &self,
+        _asset_id: ID,
+        _max_depth: usize,
+    ) -> Result<Vec<Vec<ID>>> {
+        // Mock implementation - return empty list
+        Ok(Vec::new())
+    }
+
+    async fn find_dependency_paths(
+        &self,
+        _current_id: ID,
+        _current_path: Vec<ID>,
+        _all_paths: &mut Vec<Vec<ID>>,
+        _visited: &mut std::collections::HashSet<ID>,
+        _max_depth: usize,
+    ) -> Result<()> {
+        // Mock implementation - return success
+        Ok(())
+    }
 }
 
 // Mock vulnerability service for testing
@@ -412,6 +471,29 @@ impl backend::VulnerabilityService for MockVulnerabilityService {
             created_at: now,
             updated_at: now,
         }])
+    }
+
+    async fn bulk_update_vulnerability_status(
+        &self,
+        _vulnerability_ids: Vec<ID>,
+        _status: VulnerabilityStatus,
+    ) -> Result<usize> {
+        // Mock implementation - return count of "updated" vulnerabilities
+        Ok(2)
+    }
+
+    async fn get_vulnerability_statistics(
+        &self,
+        _organization_id: ID,
+    ) -> Result<std::collections::HashMap<String, usize>> {
+        // Mock implementation - return some sample statistics
+        let mut stats = std::collections::HashMap::new();
+        stats.insert("total".to_string(), 10);
+        stats.insert("critical".to_string(), 2);
+        stats.insert("high".to_string(), 3);
+        stats.insert("medium".to_string(), 4);
+        stats.insert("low".to_string(), 1);
+        Ok(stats)
     }
 }
 

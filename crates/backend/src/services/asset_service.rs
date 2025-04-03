@@ -2,9 +2,10 @@ use async_trait::async_trait;
 use shared::types::{AssetStatus, AssetType, ID};
 use std::sync::Arc;
 use tracing::{debug, info};
+use url;
 
 use crate::{
-    models::{Asset, AssetRelationship, AssetRelationshipType},
+    models::{Asset, AssetRelationshipType},
     traits::{AssetRepository, AssetService},
     Result,
 };
@@ -198,6 +199,11 @@ impl AssetService for AssetServiceImpl {
             .filter(|a| a.asset_type == AssetType::Certificate)
             .collect();
 
+        let cloud_resources: Vec<&Asset> = assets
+            .iter()
+            .filter(|a| a.asset_type == AssetType::CloudResource)
+            .collect();
+
         // Discover domain relationships (e.g., subdomains)
         for domain_a in domains.iter() {
             for domain_b in domains.iter() {
@@ -210,8 +216,29 @@ impl AssetService for AssetServiceImpl {
                     discovered_relationships.push((
                         domain_b.id,
                         domain_a.id,
-                        AssetRelationshipType::Subdomain.as_str(),
+                        AssetRelationshipType::Subdomain.as_str().to_string(),
                     ));
+                }
+
+                // Check for same registrar relationship (if info available)
+                if let (Some(info_a), Some(info_b)) = (
+                    domain_a.attributes.get("whois_info"),
+                    domain_b.attributes.get("whois_info"),
+                ) {
+                    if let (Some(registrar_a), Some(registrar_b)) =
+                        (info_a.get("registrar"), info_b.get("registrar"))
+                    {
+                        if registrar_a == registrar_b
+                            && registrar_a.as_str().is_some()
+                            && !registrar_a.as_str().unwrap().is_empty()
+                        {
+                            discovered_relationships.push((
+                                domain_a.id,
+                                domain_b.id,
+                                AssetRelationshipType::SameRegistrar.as_str().to_string(),
+                            ));
+                        }
+                    }
                 }
             }
         }
@@ -219,6 +246,7 @@ impl AssetService for AssetServiceImpl {
         // Discover web app hosted on IP relationships
         for web_app in web_apps.iter() {
             if let Some(host_info) = web_app.attributes.get("host_info") {
+                // Check for IP relationship
                 if let Some(host_ip) = host_info.get("ip_address") {
                     if let Some(ip_str) = host_ip.as_str() {
                         // Find the corresponding IP asset
@@ -227,9 +255,58 @@ impl AssetService for AssetServiceImpl {
                                 discovered_relationships.push((
                                     web_app.id,
                                     ip.id,
-                                    AssetRelationshipType::HostedOn.as_str(),
+                                    AssetRelationshipType::HostedOn.as_str().to_string(),
                                 ));
                                 break;
+                            }
+                        }
+                    }
+                }
+
+                // Check for domain relationship
+                if let Some(host_domain) = host_info.get("domain") {
+                    if let Some(domain_str) = host_domain.as_str() {
+                        // Find the corresponding domain asset
+                        for domain in domains.iter() {
+                            if domain.value == domain_str
+                                || domain_str.ends_with(&format!(".{}", domain.value))
+                            {
+                                discovered_relationships.push((
+                                    web_app.id,
+                                    domain.id,
+                                    AssetRelationshipType::HostedOn.as_str().to_string(),
+                                ));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check for web app dependencies
+            if let Some(dependencies) = web_app.attributes.get("dependencies") {
+                if let Some(deps_array) = dependencies.as_array() {
+                    for dep in deps_array {
+                        if let Some(dep_url) = dep.get("url").and_then(|u| u.as_str()) {
+                            // Try to extract domain from URL
+                            if let Ok(url) = url::Url::parse(dep_url) {
+                                if let Some(host) = url.host_str() {
+                                    // Look for matching domain asset
+                                    for domain in domains.iter() {
+                                        if domain.value == host
+                                            || host.ends_with(&format!(".{}", domain.value))
+                                        {
+                                            discovered_relationships.push((
+                                                web_app.id,
+                                                domain.id,
+                                                AssetRelationshipType::DependsOn
+                                                    .as_str()
+                                                    .to_string(),
+                                            ));
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -250,10 +327,60 @@ impl AssetService for AssetServiceImpl {
                                         discovered_relationships.push((
                                             cert.id,
                                             domain.id,
-                                            AssetRelationshipType::CertificateFor.as_str(),
+                                            AssetRelationshipType::Secures.as_str().to_string(),
                                         ));
-                                        break;
+                                    } else if domain_str.ends_with(&format!(".{}", domain.value)) {
+                                        // Wildcard certificate that includes this domain
+                                        discovered_relationships.push((
+                                            cert.id,
+                                            domain.id,
+                                            AssetRelationshipType::Secures.as_str().to_string(),
+                                        ));
                                     }
+                                }
+
+                                // Also link to web apps on this domain
+                                for web_app in web_apps.iter() {
+                                    if let Some(host_info) = web_app.attributes.get("host_info") {
+                                        if let Some(app_domain) =
+                                            host_info.get("domain").and_then(|d| d.as_str())
+                                        {
+                                            if app_domain == domain_str
+                                                || app_domain.ends_with(&format!(".{}", domain_str))
+                                            {
+                                                discovered_relationships.push((
+                                                    cert.id,
+                                                    web_app.id,
+                                                    AssetRelationshipType::Secures
+                                                        .as_str()
+                                                        .to_string(),
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Check for common issuers between certificates
+                if let Some(issuer) = cert_info.get("issuer").and_then(|i| i.as_str()) {
+                    for other_cert in certificates.iter() {
+                        if cert.id == other_cert.id {
+                            continue;
+                        }
+
+                        if let Some(other_info) = other_cert.attributes.get("certificate_info") {
+                            if let Some(other_issuer) =
+                                other_info.get("issuer").and_then(|i| i.as_str())
+                            {
+                                if issuer == other_issuer {
+                                    discovered_relationships.push((
+                                        cert.id,
+                                        other_cert.id,
+                                        AssetRelationshipType::SameIssuer.as_str().to_string(),
+                                    ));
                                 }
                             }
                         }
@@ -262,10 +389,165 @@ impl AssetService for AssetServiceImpl {
             }
         }
 
-        info!(
-            "Discovered {} potential relationships",
-            discovered_relationships.len()
+        // Discover cloud resource relationships
+        for cloud_resource in cloud_resources.iter() {
+            if let Some(cloud_info) = cloud_resource.attributes.get("cloud_info") {
+                // Check for resources in the same VPC/Network
+                if let Some(vpc_id) = cloud_info.get("vpc_id").and_then(|v| v.as_str()) {
+                    for other_resource in cloud_resources.iter() {
+                        if cloud_resource.id == other_resource.id {
+                            continue;
+                        }
+
+                        if let Some(other_info) = other_resource.attributes.get("cloud_info") {
+                            if let Some(other_vpc) =
+                                other_info.get("vpc_id").and_then(|v| v.as_str())
+                            {
+                                if vpc_id == other_vpc {
+                                    discovered_relationships.push((
+                                        cloud_resource.id,
+                                        other_resource.id,
+                                        AssetRelationshipType::SameNetwork.as_str().to_string(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Link cloud resources to their public IP addresses
+                if let Some(public_ip) = cloud_info.get("public_ip").and_then(|ip| ip.as_str()) {
+                    for ip in ips.iter() {
+                        if ip.value == public_ip {
+                            discovered_relationships.push((
+                                cloud_resource.id,
+                                ip.id,
+                                AssetRelationshipType::HasPublicIP.as_str().to_string(),
+                            ));
+                            break;
+                        }
+                    }
+                }
+
+                // Link cloud resources to hosted services/web apps
+                if let Some(resource_dns) = cloud_info.get("dns_name").and_then(|dns| dns.as_str())
+                {
+                    for web_app in web_apps.iter() {
+                        if let Some(host_info) = web_app.attributes.get("host_info") {
+                            if let Some(app_host) =
+                                host_info.get("hostname").and_then(|h| h.as_str())
+                            {
+                                if app_host == resource_dns {
+                                    discovered_relationships.push((
+                                        web_app.id,
+                                        cloud_resource.id,
+                                        AssetRelationshipType::HostedOn.as_str().to_string(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+
+                    // Also link to domains
+                    for domain in domains.iter() {
+                        if resource_dns.ends_with(&format!(".{}", domain.value)) {
+                            discovered_relationships.push((
+                                cloud_resource.id,
+                                domain.id,
+                                AssetRelationshipType::BelongsTo.as_str().to_string(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Deduplicate relationships
+        let mut unique_relationships = Vec::new();
+        for rel in discovered_relationships {
+            if !unique_relationships.contains(&rel) {
+                unique_relationships.push(rel);
+            }
+        }
+
+        debug!(
+            "Discovered {} unique asset relationships",
+            unique_relationships.len()
         );
-        Ok(discovered_relationships)
+        Ok(unique_relationships)
+    }
+
+    // Helper function to identify direct and indirect dependencies between assets
+    async fn analyze_dependency_chain(
+        &self,
+        asset_id: ID,
+        max_depth: usize,
+    ) -> Result<Vec<Vec<ID>>> {
+        debug!(
+            "Analyzing dependency chains for asset: {} (max depth: {})",
+            asset_id, max_depth
+        );
+
+        let mut dependency_chains = Vec::new();
+        let mut visited = std::collections::HashSet::new();
+
+        // Start DFS from the asset
+        self.find_dependency_paths(
+            asset_id,
+            Vec::new(),
+            &mut dependency_chains,
+            &mut visited,
+            max_depth,
+        )
+        .await?;
+
+        debug!("Found {} dependency chains", dependency_chains.len());
+        Ok(dependency_chains)
+    }
+
+    // Helper method that implements depth-first search to find dependency paths
+    async fn find_dependency_paths(
+        &self,
+        current_id: ID,
+        current_path: Vec<ID>,
+        all_paths: &mut Vec<Vec<ID>>,
+        visited: &mut std::collections::HashSet<ID>,
+        max_depth: usize,
+    ) -> Result<()> {
+        // Check if we've visited this node in the current path
+        if visited.contains(&current_id) {
+            return Ok(());
+        }
+
+        // Add the current asset to the path
+        let mut path = current_path.clone();
+        path.push(current_id);
+
+        // Mark as visited
+        visited.insert(current_id);
+
+        // Get related assets (specifically dependencies)
+        let related = self
+            .get_related_assets(
+                current_id,
+                Some(AssetRelationshipType::DependsOn.as_str().to_string()),
+            )
+            .await?;
+
+        if related.is_empty() || path.len() >= max_depth {
+            // End of a path, add it to results
+            all_paths.push(path.clone());
+        } else {
+            // Continue the search for each dependency
+            for (asset, _) in related {
+                self.find_dependency_paths(asset.id, path.clone(), all_paths, visited, max_depth)
+                    .await?;
+            }
+        }
+
+        // Remove from visited on backtrack
+        visited.remove(&current_id);
+
+        Ok(())
     }
 }

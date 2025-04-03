@@ -27,6 +27,7 @@ reqwest = { workspace = true }
 scraper = { workspace = true }
 regex = { workspace = true }
 trust-dns-resolver = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }

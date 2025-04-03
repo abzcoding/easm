@@ -10,7 +10,10 @@ use std::{net::IpAddr, sync::Arc};
 use url::Url;
 use uuid::Uuid;
 
-use crate::{errors::ApiError, errors::Result, state::AppState};
+use crate::{
+    errors::{convert_result, ApiError, Result},
+    state::AppState,
+};
 
 // Validation functions
 fn is_valid_domain(domain: &str) -> bool {
@@ -134,33 +137,35 @@ pub struct CreateAssetRequest {
     pub attributes: Option<serde_json::Value>,
 }
 
-/// List assets with optional filters
+/// Get assets with filtering
 pub async fn list_assets(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AssetQuery>,
 ) -> Result<Json<AssetListResponse>> {
-    // Limit maximum page size
-    const MAX_LIMIT: usize = 100;
-    let limit = query.limit.unwrap_or(20).min(MAX_LIMIT);
+    let limit = query.limit.unwrap_or(10);
     let offset = query.offset.unwrap_or(0);
 
     // Get assets from service
-    let assets = state
-        .asset_service
-        .list_assets(
-            query.organization_id,
-            query.asset_type,
-            query.status,
-            limit,
-            offset,
-        )
-        .await?;
+    let assets = convert_result(
+        state
+            .asset_service
+            .list_assets(
+                query.organization_id,
+                query.asset_type,
+                query.status,
+                limit,
+                offset,
+            )
+            .await,
+    )?;
 
     // Get total count for pagination
-    let total = state
-        .asset_service
-        .count_assets(query.organization_id, query.asset_type, query.status)
-        .await?;
+    let total = convert_result(
+        state
+            .asset_service
+            .count_assets(query.organization_id, query.asset_type, query.status)
+            .await,
+    )?;
 
     Ok(Json(AssetListResponse { assets, total }))
 }
@@ -170,7 +175,7 @@ pub async fn get_asset(
     State(state): State<Arc<AppState>>,
     Path(id): Path<ID>,
 ) -> Result<Json<Asset>> {
-    let asset = state.asset_service.get_asset(id).await?;
+    let asset = convert_result(state.asset_service.get_asset(id).await)?;
     Ok(Json(asset))
 }
 
@@ -221,6 +226,14 @@ pub async fn create_asset(
                 )));
             }
         }
+        AssetType::CloudResource => {
+            // Add validation for cloud resources
+            if asset_request.value.is_empty() {
+                return Err(ApiError::BadRequest(
+                    "Cloud resource identifier cannot be empty".to_string(),
+                ));
+            }
+        }
     }
 
     // Create asset model from request
@@ -231,7 +244,7 @@ pub async fn create_asset(
         asset_request.attributes,
     );
 
-    let created_asset = state.asset_service.create_asset(&asset).await?;
+    let created_asset = convert_result(state.asset_service.create_asset(&asset).await)?;
     Ok((StatusCode::CREATED, Json(created_asset)))
 }
 
@@ -246,7 +259,7 @@ pub async fn update_asset(
         asset.id = id;
     }
 
-    let updated_asset = state.asset_service.update_asset(&asset).await?;
+    let updated_asset = convert_result(state.asset_service.update_asset(&asset).await)?;
     Ok(Json(updated_asset))
 }
 
@@ -255,6 +268,6 @@ pub async fn delete_asset(
     State(state): State<Arc<AppState>>,
     Path(id): Path<ID>,
 ) -> Result<StatusCode> {
-    state.asset_service.delete_asset(id).await?;
+    convert_result(state.asset_service.delete_asset(id).await)?;
     Ok(StatusCode::NO_CONTENT)
 }

@@ -6,7 +6,8 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use shared::types::{AssetType, Severity, ID};
+use shared::types::{AssetType, Severity};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{errors::ApiError, state::AppState};
@@ -101,9 +102,9 @@ pub struct AssetSummary {
 
 /// Generate a vulnerability report
 pub async fn generate_vulnerability_report(
-    State(state): State<AppState>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<ReportParams>,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<Json<VulnerabilityReportResponse>, ApiError> {
     // In a real implementation, this would query the vulnerability service
     // to get real data. For now, we'll return dummy data.
 
@@ -145,29 +146,25 @@ pub async fn generate_vulnerability_report(
     };
 
     match params.format.unwrap_or_default() {
-        ReportFormat::Json => Ok((StatusCode::OK, Json(report))),
+        ReportFormat::Json => Ok(Json(report)),
         ReportFormat::Csv => {
-            // In a real implementation, convert to CSV
-            Ok((
-                StatusCode::OK,
-                "Report would be in CSV format".to_string().into_response(),
-            ))
+            // For CSV and PDF formats, we'll still use the same report object for now
+            // but in a real implementation, this would generate and return a file
+            Ok(Json(report))
         }
         ReportFormat::Pdf => {
-            // In a real implementation, generate PDF
-            Ok((
-                StatusCode::OK,
-                "Report would be in PDF format".to_string().into_response(),
-            ))
+            // For CSV and PDF formats, we'll still use the same report object for now
+            // but in a real implementation, this would generate and return a file
+            Ok(Json(report))
         }
     }
 }
 
 /// Generate an asset report
 pub async fn generate_asset_report(
-    State(state): State<AppState>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<ReportParams>,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<Json<AssetReportResponse>, ApiError> {
     // In a real implementation, this would query the asset service
     // to get real data. For now, we'll return dummy data.
 
@@ -203,27 +200,23 @@ pub async fn generate_asset_report(
     };
 
     match params.format.unwrap_or_default() {
-        ReportFormat::Json => Ok((StatusCode::OK, Json(report))),
+        ReportFormat::Json => Ok(Json(report)),
         ReportFormat::Csv => {
-            // In a real implementation, convert to CSV
-            Ok((
-                StatusCode::OK,
-                "Report would be in CSV format".to_string().into_response(),
-            ))
+            // For CSV and PDF formats, we'll still use the same report object for now
+            // but in a real implementation, this would generate and return a file
+            Ok(Json(report))
         }
         ReportFormat::Pdf => {
-            // In a real implementation, generate PDF
-            Ok((
-                StatusCode::OK,
-                "Report would be in PDF format".to_string().into_response(),
-            ))
+            // For CSV and PDF formats, we'll still use the same report object for now
+            // but in a real implementation, this would generate and return a file
+            Ok(Json(report))
         }
     }
 }
 
 /// Download a previously generated report by ID
 pub async fn download_report(
-    State(state): State<AppState>,
+    State(_state): State<Arc<AppState>>,
     Path(report_id): Path<Uuid>,
     Query(params): Query<ReportParams>,
 ) -> Result<impl IntoResponse, ApiError> {

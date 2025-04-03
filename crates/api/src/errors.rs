@@ -210,13 +210,42 @@ impl From<serde_json::Error> for ApiError {
     }
 }
 
-impl<T> From<BackendResult<T>> for Result<T> {
-    fn from(result: BackendResult<T>) -> Self {
-        match result {
-            Ok(value) => Ok(value),
-            Err(err) => Err(ApiError::from(err)),
+/// Convert a backend::Error to ApiError
+pub fn convert_backend_error(err: backend::Error) -> ApiError {
+    match err {
+        backend::Error::Validation(msg) => ApiError::BadRequest(msg),
+        backend::Error::Authentication(_) => ApiError::InvalidCredentials,
+        backend::Error::Authorization(_) => ApiError::Forbidden,
+        backend::Error::NotFound(msg) => ApiError::NotFound(msg),
+        backend::Error::Conflict(msg) => ApiError::Conflict(msg),
+        backend::Error::Database(msg) => {
+            ApiError::InternalServerError(format!("Database error: {}", msg))
         }
+        backend::Error::DatabaseConnection(msg) => {
+            ApiError::InternalServerError(format!("Database connection error: {}", msg))
+        }
+        backend::Error::DatabaseQuery(msg) => {
+            ApiError::InternalServerError(format!("Database query error: {}", msg))
+        }
+        backend::Error::Internal(msg) => ApiError::InternalServerError(msg),
+        backend::Error::Network(msg) => {
+            ApiError::InternalServerError(format!("Network error: {}", msg))
+        }
+        backend::Error::Dependency(msg) => {
+            ApiError::InternalServerError(format!("Dependency error: {}", msg))
+        }
+        backend::Error::RateLimit(_) => ApiError::RateLimited,
+        backend::Error::BadRequest(msg) => ApiError::BadRequest(msg),
+        backend::Error::Shared(err) => ApiError::AppError(err),
     }
 }
 
 pub type Result<T> = std::result::Result<T, ApiError>;
+
+/// Helper function to convert a BackendResult to a Result
+pub fn convert_result<T>(result: BackendResult<T>) -> Result<T> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(err) => Err(convert_backend_error(err)),
+    }
+}

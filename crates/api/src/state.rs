@@ -37,7 +37,7 @@ impl AppState {
         // Connect to Redis if configured
         let redis_client = if let Some(redis_url) = &config.redis_url {
             Some(RedisClient::open(redis_url.as_str()).map_err(|e| {
-                shared::errors::Error::external_service(format!("Redis error: {}", e))
+                shared::errors::AppError::external_service(format!("Redis error: {}", e))
             })?)
         } else {
             None

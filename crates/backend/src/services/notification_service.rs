@@ -1,6 +1,8 @@
 use async_trait::async_trait;
+use rand;
 use shared::types::{Severity, VulnerabilityStatus, ID};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use tokio;
 use tracing::{debug, info};
 
 use crate::{
@@ -89,6 +91,210 @@ impl NotificationServiceImpl {
             "data": data
         })
     }
+
+    /// Handle email sending with error handling and retries
+    async fn send_email_with_retry(
+        &self,
+        client: &EmailClient,
+        recipients: &[String],
+        subject: &str,
+        body: &str,
+        max_retries: usize,
+    ) -> Result<bool> {
+        let mut attempts = 0;
+        let mut last_error = None;
+
+        while attempts < max_retries {
+            match client.send_email(recipients, subject, body).await {
+                Ok(success) => return Ok(success),
+                Err(e) => {
+                    attempts += 1;
+                    last_error = Some(e);
+
+                    if attempts < max_retries {
+                        // Exponential backoff with jitter
+                        let backoff_ms = 100 * (1 << attempts) + rand::random::<u64>() % 100;
+                        debug!(
+                            "Email send failed, retrying in {}ms. Attempt {}/{}",
+                            backoff_ms, attempts, max_retries
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+                    }
+                }
+            }
+        }
+
+        // All retries failed
+        Err(last_error.unwrap_or_else(|| crate::Error::Internal("Unknown email error".to_string())))
+    }
+
+    /// Handle webhook sending with error handling and retries
+    async fn send_webhook_with_retry(
+        &self,
+        client: &WebhookClient,
+        url: &str,
+        payload: &serde_json::Value,
+        max_retries: usize,
+    ) -> Result<bool> {
+        let mut attempts = 0;
+        let mut last_error = None;
+
+        while attempts < max_retries {
+            match client.send_webhook(url, payload).await {
+                Ok(success) => return Ok(success),
+                Err(e) => {
+                    attempts += 1;
+                    last_error = Some(e);
+
+                    if attempts < max_retries {
+                        // Exponential backoff with jitter
+                        let backoff_ms = 100 * (1 << attempts) + rand::random::<u64>() % 100;
+                        debug!(
+                            "Webhook send failed, retrying in {}ms. Attempt {}/{}",
+                            backoff_ms, attempts, max_retries
+                        );
+                        tokio::time::sleep(std::time::Duration::from_millis(backoff_ms)).await;
+                    }
+                }
+            }
+        }
+
+        // All retries failed
+        Err(last_error
+            .unwrap_or_else(|| crate::Error::Internal("Unknown webhook error".to_string())))
+    }
+
+    /// Send batch notifications for multiple vulnerabilities
+    async fn send_batch_notification(
+        &self,
+        vulnerabilities: &[Vulnerability],
+        event_type: &str,
+        organization_id: ID,
+    ) -> Result<bool> {
+        if vulnerabilities.is_empty() {
+            return Ok(true);
+        }
+
+        debug!(
+            "Preparing batch notification for {} vulnerabilities",
+            vulnerabilities.len()
+        );
+
+        // Get notification settings
+        let settings = self.get_notification_settings(organization_id).await?;
+
+        // Check notification settings
+        let should_notify = match event_type {
+            "new_vulnerability" => settings.notify_on_new_vulnerability,
+            "vulnerability_status_change" => settings.notify_on_status_change,
+            _ => true, // Other event types are always notified
+        };
+
+        if !should_notify {
+            debug!("Batch notification skipped based on settings");
+            return Ok(false);
+        }
+
+        // Filter vulnerabilities based on severity
+        let filtered_vulns: Vec<&Vulnerability> = vulnerabilities
+            .iter()
+            .filter(|v| self.should_notify_severity(v.severity, &settings))
+            .collect();
+
+        if filtered_vulns.is_empty() {
+            debug!("No vulnerabilities meet severity threshold for notification");
+            return Ok(false);
+        }
+
+        // Count vulnerabilities by severity
+        let mut severity_counts: HashMap<Severity, usize> = HashMap::new();
+        for vuln in &filtered_vulns {
+            *severity_counts.entry(vuln.severity).or_insert(0) += 1;
+        }
+
+        // Build email content
+        let subject = format!(
+            "[EASM] Batch notification: {} new findings",
+            filtered_vulns.len()
+        );
+
+        let mut body = format!("The following vulnerabilities have been detected:\n\n");
+
+        // Add severity summary
+        body.push_str("Summary by severity:\n");
+        for (severity, count) in severity_counts.iter() {
+            body.push_str(&format!("- {:?}: {}\n", severity, count));
+        }
+        body.push_str("\n\nDetails:\n");
+
+        // Add details for each vulnerability
+        for (i, vuln) in filtered_vulns.iter().enumerate() {
+            body.push_str(&format!(
+                "\n{}. {} (Severity: {:?})\n   Asset ID: {}\n   Description: {}\n",
+                i + 1,
+                vuln.title,
+                vuln.severity,
+                vuln.asset_id,
+                vuln.description
+                    .as_deref()
+                    .unwrap_or("No description available")
+            ));
+        }
+
+        // Build webhook payload
+        let payload = self.create_notification_payload(
+            &format!("batch_{}", event_type),
+            &serde_json::json!({
+                "count": filtered_vulns.len(),
+                "severity_summary": severity_counts,
+                "vulnerabilities": filtered_vulns,
+            }),
+        );
+
+        // Send notifications based on settings
+        let mut success = true;
+        let max_retries = 3;
+
+        if settings.email_notifications && !settings.email_recipients.is_empty() {
+            if let Some(client) = &self.email_client {
+                match self
+                    .send_email_with_retry(
+                        client,
+                        &settings.email_recipients,
+                        &subject,
+                        &body,
+                        max_retries,
+                    )
+                    .await
+                {
+                    Ok(_) => debug!("Batch email notification sent successfully"),
+                    Err(e) => {
+                        debug!("Failed to send batch email notification: {:?}", e);
+                        success = false;
+                    }
+                }
+            }
+        }
+
+        if settings.webhook_notifications {
+            if let Some(url) = &settings.webhook_url {
+                if let Some(client) = &self.webhook_client {
+                    match self
+                        .send_webhook_with_retry(client, url, &payload, max_retries)
+                        .await
+                    {
+                        Ok(_) => debug!("Batch webhook notification sent successfully"),
+                        Err(e) => {
+                            debug!("Failed to send batch webhook notification: {:?}", e);
+                            success = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(success)
+    }
 }
 
 #[async_trait]
@@ -136,15 +342,25 @@ impl NotificationService for NotificationServiceImpl {
 
         // Send notifications based on settings
         let mut success = true;
+        let max_retries = 3;
 
         if settings.email_notifications && !settings.email_recipients.is_empty() {
             if let Some(client) = &self.email_client {
-                if let Err(e) = client
-                    .send_email(&settings.email_recipients, &subject, &body)
+                match self
+                    .send_email_with_retry(
+                        client,
+                        &settings.email_recipients,
+                        &subject,
+                        &body,
+                        max_retries,
+                    )
                     .await
                 {
-                    debug!("Failed to send email notification: {:?}", e);
-                    success = false;
+                    Ok(_) => debug!("Email notification sent successfully"),
+                    Err(e) => {
+                        debug!("Failed to send email notification: {:?}", e);
+                        success = false;
+                    }
                 }
             }
         }
@@ -152,15 +368,54 @@ impl NotificationService for NotificationServiceImpl {
         if settings.webhook_notifications {
             if let Some(url) = &settings.webhook_url {
                 if let Some(client) = &self.webhook_client {
-                    if let Err(e) = client.send_webhook(url, &payload).await {
-                        debug!("Failed to send webhook notification: {:?}", e);
-                        success = false;
+                    match self
+                        .send_webhook_with_retry(client, url, &payload, max_retries)
+                        .await
+                    {
+                        Ok(_) => debug!("Webhook notification sent successfully"),
+                        Err(e) => {
+                            debug!("Failed to send webhook notification: {:?}", e);
+                            success = false;
+                        }
                     }
                 }
             }
         }
 
         Ok(success)
+    }
+
+    // New method to handle batch notifications for multiple new vulnerabilities
+    async fn notify_new_vulnerabilities_batch(
+        &self,
+        vulnerabilities: &[Vulnerability],
+    ) -> Result<bool> {
+        if vulnerabilities.is_empty() {
+            return Ok(true);
+        }
+
+        // Group vulnerabilities by organization for more targeted notifications
+        let mut org_vulns: HashMap<ID, Vec<Vulnerability>> = HashMap::new();
+        for vuln in vulnerabilities {
+            org_vulns
+                .entry(vuln.asset_id)
+                .or_default()
+                .push(vuln.clone());
+        }
+
+        let mut overall_success = true;
+
+        // Send batch notifications for each organization
+        for (org_id, vulns) in org_vulns {
+            let success = self
+                .send_batch_notification(&vulns, "new_vulnerability", org_id)
+                .await?;
+            if !success {
+                overall_success = false;
+            }
+        }
+
+        Ok(overall_success)
     }
 
     async fn notify_vulnerability_status_change(
