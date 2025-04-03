@@ -71,6 +71,7 @@ pub enum JobType {
     PortScan,
     WebCrawl,
     CertScan,
+    VulnScan,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,6 +91,19 @@ pub enum JobStatus {
     Running,
     Completed,
     Failed,
+    Cancelled,
+}
+
+impl std::fmt::Display for JobStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            JobStatus::Pending => write!(f, "PENDING"),
+            JobStatus::Running => write!(f, "RUNNING"),
+            JobStatus::Completed => write!(f, "COMPLETED"),
+            JobStatus::Failed => write!(f, "FAILED"),
+            JobStatus::Cancelled => write!(f, "CANCELLED"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord)]

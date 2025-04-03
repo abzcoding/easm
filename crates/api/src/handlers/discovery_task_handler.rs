@@ -77,10 +77,7 @@ pub async fn list_discovery_tasks(
             .await,
     )?;
 
-    Ok(Json(DiscoveryTaskListResponse {
-        tasks,
-        total,
-    }))
+    Ok(Json(DiscoveryTaskListResponse { tasks, total }))
 }
 
 /// Get a single discovery task by ID
@@ -128,7 +125,7 @@ pub async fn create_discovery_task(
         "discovery_task_type".to_string(),
         serde_json::Value::String(format!("{:?}", request.task_type)),
     );
-    
+
     // Add Nuclei parameters if provided
     if let Some(nuclei_params) = request.nuclei_params {
         config.insert(
@@ -155,7 +152,12 @@ pub async fn create_discovery_task(
             job_id: created_job.id,
             asset_id,
         };
-        convert_result(state.discovery_job_repository.link_job_to_asset(&link).await)?;
+        convert_result(
+            state
+                .discovery_job_repository
+                .link_job_to_asset(&link)
+                .await,
+        )?;
     }
 
     Ok((StatusCode::CREATED, Json(created_job)))
@@ -168,7 +170,7 @@ pub async fn cancel_discovery_task(
 ) -> Result<Json<DiscoveryJob>> {
     // Get the job
     let mut job = convert_result(state.discovery_job_repository.get_job(id).await)?;
-    
+
     // Only cancel if the job is pending or running
     if job.status == JobStatus::Pending || job.status == JobStatus::Running {
         job.status = JobStatus::Cancelled;
@@ -179,7 +181,7 @@ pub async fn cancel_discovery_task(
             job.status
         )));
     }
-    
+
     Ok(Json(job))
 }
 
@@ -190,4 +192,4 @@ pub async fn delete_discovery_task(
 ) -> Result<StatusCode> {
     convert_result(state.discovery_job_repository.delete_job(id).await)?;
     Ok(StatusCode::NO_CONTENT)
-} 
+}

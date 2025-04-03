@@ -5,7 +5,8 @@ use backend::{
         AssetServiceImpl, DiscoveryServiceImpl, OrganizationServiceImpl, UserServiceImpl,
         VulnerabilityServiceImpl,
     },
-    AssetService, DiscoveryJobRepository, DiscoveryService, OrganizationService, UserService, VulnerabilityService,
+    AssetService, DiscoveryJobRepository, DiscoveryService, OrganizationService, UserService,
+    VulnerabilityService,
 };
 use infrastructure::{database::Database, repositories::RepositoryFactory};
 use redis::Client as RedisClient;

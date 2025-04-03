@@ -14,6 +14,7 @@ path = "src/main.rs"
 backend = { path = "../backend" }
 infrastructure = { path = "../infrastructure" }
 shared = { path = "../shared" }
+discovery = { path = "../discovery" }
 
 argon2 = { workspace = true }
 async-trait = { workspace = true }

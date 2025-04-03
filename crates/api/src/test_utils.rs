@@ -546,7 +546,6 @@ impl backend::DiscoveryService for MockDiscoveryService {
     }
 }
 
-// Helper function to create test state
 pub fn create_test_app_state() -> AppState {
     // Load config first to get DB URL if needed for lazy pool
     let config = Config::from_env().expect("Failed to load config for test state");
@@ -554,17 +553,103 @@ pub fn create_test_app_state() -> AppState {
     let db_pool = sqlx::postgres::PgPool::connect_lazy(&config.database_url)
         .expect("Failed to create lazy DB pool for tests");
 
+    // Create a stub organization service that returns predefined data
+    struct StubDiscoveryJobRepository;
+
+    #[async_trait::async_trait]
+    impl backend::DiscoveryJobRepository for StubDiscoveryJobRepository {
+        async fn create_job(
+            &self,
+            job: &backend::models::DiscoveryJob,
+        ) -> backend::Result<backend::models::DiscoveryJob> {
+            Ok(job.clone())
+        }
+
+        async fn update_job(
+            &self,
+            job: &backend::models::DiscoveryJob,
+        ) -> backend::Result<backend::models::DiscoveryJob> {
+            Ok(job.clone())
+        }
+
+        async fn get_job(&self, id: ID) -> backend::Result<backend::models::DiscoveryJob> {
+            Ok(backend::models::DiscoveryJob {
+                id,
+                organization_id: Uuid::new_v4(),
+                status: shared::types::JobStatus::Pending,
+                job_type: shared::types::JobType::PortScan,
+                target: Some("example.com".to_string()),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                started_at: None,
+                completed_at: None,
+                logs: None,
+                configuration: serde_json::Value::Object(serde_json::Map::new()),
+            })
+        }
+
+        async fn delete_job(&self, _id: ID) -> backend::Result<bool> {
+            Ok(true)
+        }
+
+        async fn list_jobs(
+            &self,
+            _organization_id: Option<ID>,
+            _job_type: Option<shared::types::JobType>,
+            _status: Option<shared::types::JobStatus>,
+            _limit: usize,
+            _offset: usize,
+        ) -> backend::Result<Vec<backend::models::DiscoveryJob>> {
+            Ok(vec![])
+        }
+
+        async fn count_jobs(
+            &self,
+            _organization_id: Option<ID>,
+            _job_type: Option<shared::types::JobType>,
+            _status: Option<shared::types::JobStatus>,
+        ) -> backend::Result<usize> {
+            Ok(0)
+        }
+
+        async fn link_job_to_asset(
+            &self,
+            _link: &backend::models::JobAssetLink,
+        ) -> backend::Result<backend::models::JobAssetLink> {
+            Ok(backend::models::JobAssetLink {
+                job_id: Uuid::new_v4(),
+                asset_id: Uuid::new_v4(),
+            })
+        }
+
+        async fn create_job_asset_link(
+            &self,
+            _link: &backend::models::JobAssetLink,
+        ) -> backend::Result<backend::models::JobAssetLink> {
+            Ok(backend::models::JobAssetLink {
+                job_id: Uuid::new_v4(),
+                asset_id: Uuid::new_v4(),
+            })
+        }
+
+        async fn get_job_assets(
+            &self,
+            _job_id: ID,
+        ) -> backend::Result<Vec<backend::models::Asset>> {
+            Ok(vec![])
+        }
+    }
+
     AppState {
         config,
-        db_pool,            // db_pool is still part of AppState
-        redis_client: None, // Assuming redis is optional
-        // Assign mock services directly to the state fields
+        db_pool,
+        redis_client: None,
         asset_service: std::sync::Arc::new(MockAssetService),
         vulnerability_service: std::sync::Arc::new(MockVulnerabilityService),
         organization_service: std::sync::Arc::new(MockOrganizationService),
         discovery_service: std::sync::Arc::new(MockDiscoveryService),
         user_service: std::sync::Arc::new(MockUserService),
-        // Remove repository_factory field
+        discovery_job_repository: std::sync::Arc::new(StubDiscoveryJobRepository),
     }
 }
 

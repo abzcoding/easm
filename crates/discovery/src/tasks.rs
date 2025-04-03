@@ -80,7 +80,7 @@ impl DiscoveryTask {
                 Ok(results
                     .into_iter()
                     .next()
-                    .unwrap_or_else(|| crate::results::DiscoveryResult::new()))
+                    .unwrap_or_else(crate::results::DiscoveryResult::new))
             }
             DiscoveryTaskType::CertificateTransparency => {
                 // Not implemented yet

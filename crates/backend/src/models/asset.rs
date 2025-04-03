@@ -86,7 +86,7 @@ impl Asset {
         let mut relationships = self.get_relationships();
         relationships
             .entry(relationship_type.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(related_asset_id);
 
         // Update the attributes with the new relationships

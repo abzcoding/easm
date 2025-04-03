@@ -218,7 +218,7 @@ impl NotificationServiceImpl {
             filtered_vulns.len()
         );
 
-        let mut body = format!("The following vulnerabilities have been detected:\n\n");
+        let mut body = "The following vulnerabilities have been detected:\n\n".to_string();
 
         // Add severity summary
         body.push_str("Summary by severity:\n");
@@ -294,6 +294,12 @@ impl NotificationServiceImpl {
         }
 
         Ok(success)
+    }
+}
+
+impl Default for NotificationServiceImpl {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

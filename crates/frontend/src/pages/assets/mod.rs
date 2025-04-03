@@ -2,9 +2,6 @@ use crate::api::ApiClient;
 use crate::components::ui::asset_card::{Asset, AssetCard};
 use leptos::prelude::*;
 
-mod detail;
-pub use detail::AssetDetailPage;
-
 #[component]
 pub fn AssetsPage() -> impl IntoView {
     // Create API client

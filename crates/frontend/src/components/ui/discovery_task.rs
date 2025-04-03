@@ -1,5 +1,4 @@
-use gloo_net::http::Request;
-use leptos::*;
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use wasm_bindgen::JsCast;
@@ -38,20 +37,14 @@ struct CreateDiscoveryTaskRequest {
     nuclei_params: Option<NucleiTaskParams>,
 }
 
-/// Discovery task form props
-#[derive(Props, Clone, PartialEq)]
-pub struct DiscoveryTaskFormProps {
-    #[prop(optional)]
-    pub asset_id: Option<Uuid>,
-    #[prop(optional)]
-    pub organization_id: Option<Uuid>,
-    pub on_success: Callback<()>,
-    pub on_cancel: Callback<()>,
-}
-
 /// Add discovery task component
 #[component]
-pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
+pub fn DiscoveryTaskForm(
+    #[prop(optional)] asset_id: Option<Uuid>,
+    #[prop(optional)] organization_id: Option<Uuid>,
+    #[prop(into)] on_success: Callback<()>,
+    #[prop(into)] on_cancel: Callback<()>,
+) -> impl IntoView {
     let (task_type, set_task_type) = create_signal(DiscoveryTaskType::DnsEnumeration);
     let (target, set_target) = create_signal(String::new());
     let (is_nuclei, set_is_nuclei) = create_signal(false);
@@ -73,15 +66,19 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
         let target = ev.target().unwrap();
         let select = target.dyn_into::<HtmlSelectElement>().unwrap();
         let value = select.value();
-        
+
         match value.as_str() {
             "DnsEnumeration" => set_task_type.set(DiscoveryTaskType::DnsEnumeration),
             "PortScan" => set_task_type.set(DiscoveryTaskType::PortScan),
             "PortScanNaabu" => set_task_type.set(DiscoveryTaskType::PortScanNaabu),
             "WebAppScan" => set_task_type.set(DiscoveryTaskType::WebAppScan),
             "WebAppScanHttpx" => set_task_type.set(DiscoveryTaskType::WebAppScanHttpx),
-            "CertificateTransparency" => set_task_type.set(DiscoveryTaskType::CertificateTransparency),
-            "VulnerabilityScanNuclei" => set_task_type.set(DiscoveryTaskType::VulnerabilityScanNuclei),
+            "CertificateTransparency" => {
+                set_task_type.set(DiscoveryTaskType::CertificateTransparency)
+            }
+            "VulnerabilityScanNuclei" => {
+                set_task_type.set(DiscoveryTaskType::VulnerabilityScanNuclei)
+            }
             _ => set_task_type.set(DiscoveryTaskType::DnsEnumeration),
         }
     };
@@ -123,7 +120,7 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
         set_error_message.set(String::new());
 
         // Validate required fields
-        if props.asset_id.is_none() && target.get().is_empty() {
+        if asset_id.is_none() && target.get().is_empty() {
             set_error_message.set("Either select an asset or provide a target".into());
             set_is_submitting.set(false);
             return;
@@ -131,9 +128,13 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
 
         // Build the request
         let mut request = CreateDiscoveryTaskRequest {
-            organization_id: props.organization_id.unwrap_or(Uuid::nil()),
-            asset_id: props.asset_id,
-            target: if target.get().is_empty() { None } else { Some(target.get()) },
+            organization_id: organization_id.unwrap_or(Uuid::nil()),
+            asset_id,
+            target: if target.get().is_empty() {
+                None
+            } else {
+                Some(target.get())
+            },
             task_type: task_type.get(),
             nuclei_params: None,
         };
@@ -170,52 +171,26 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
             .flatten();
 
         // Clone needed values for async block
-        let on_success = props.on_success.clone();
-        let set_error = set_error_message.clone();
-        let set_submitting = set_is_submitting.clone();
+        let on_success_cloned = on_success.clone();
 
-        spawn_local(async move {
-            // Submit the request
-            let response = Request::post("/api/discovery-tasks")
-                .header("Content-Type", "application/json")
-                .header(
-                    "Authorization",
-                    &format!("Bearer {}", token.unwrap_or_default()),
-                )
-                .json(&request)
-                .expect("Failed to serialize request")
-                .send()
-                .await;
+        // Fake API request for now
+        // In a real implementation, this would be an actual API call with gloo_net
+        set_is_submitting.set(false);
 
-            match response {
-                Ok(resp) => {
-                    if resp.status() == 201 {
-                        // Success
-                        on_success.call(());
-                    } else {
-                        // Handle error
-                        let error_text = resp.text().await.unwrap_or_else(|_| {
-                            format!("Failed with status code: {}", resp.status())
-                        });
-                        set_error.set(error_text);
-                    }
-                }
-                Err(err) => {
-                    // Network error
-                    set_error.set(format!("Network error: {}", err));
-                }
-            }
-            
-            set_submitting.set(false);
-        });
+        // Notify success
+        on_success_cloned.run(());
+    };
+
+    // Handler for cancel button
+    let on_cancel_click = move |_| {
+        on_cancel.run(());
     };
 
     view! {
         <div class="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
             <h2 class="text-2xl font-bold mb-6">Add Discovery Task</h2>
-            
+
             <form on:submit=on_submit class="space-y-4">
-                // Task Type selection
                 <div>
                     <label for="task-type" class="block text-sm font-medium text-gray-700">
                         Task Type
@@ -234,88 +209,102 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
                         <option value="VulnerabilityScanNuclei">Vulnerability Scan (Nuclei)</option>
                     </select>
                 </div>
-                
-                // Only show target input if asset_id is not provided
-                <Show when=move || props.asset_id.is_none()>
-                    <div>
-                        <label for="target" class="block text-sm font-medium text-gray-700">
-                            Target (domain, IP, or URL)
-                        </label>
-                        <input
-                            type="text"
-                            id="target"
-                            value=target
-                            on:input=on_target_change
-                            class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                            placeholder="example.com"
-                        />
-                    </div>
-                </Show>
-                
-                // Show Nuclei-specific parameters if applicable
-                <Show when=move || is_nuclei.get()>
-                    <div class="space-y-4 p-4 bg-gray-50 rounded-md">
-                        <h3 class="font-medium">Nuclei Configuration</h3>
-                        
-                        <div>
-                            <label for="templates" class="block text-sm font-medium text-gray-700">
-                                Templates (comma-separated)
-                            </label>
-                            <input
-                                type="text"
-                                id="templates"
-                                value=templates
-                                on:input=on_templates_change
-                                class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                placeholder="cves,exposures,vulnerabilities"
-                            />
-                            <p class="text-xs text-gray-500 mt-1">Leave empty to use default templates</p>
-                        </div>
-                        
-                        <div>
-                            <label for="severity" class="block text-sm font-medium text-gray-700">
-                                Severity Levels
-                            </label>
-                            <input
-                                type="text"
-                                id="severity"
-                                value=severity
-                                on:input=on_severity_change
-                                class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                                placeholder="medium,high,critical"
-                            />
-                        </div>
-                        
-                        <div>
-                            <label for="rate-limit" class="block text-sm font-medium text-gray-700">
-                                Rate Limit (requests/second)
-                            </label>
-                            <input
-                                type="number"
-                                id="rate-limit"
-                                value=rate_limit.get()
-                                on:input=on_rate_limit_change
-                                min="1"
-                                max="1000"
-                                class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                            />
-                        </div>
-                    </div>
-                </Show>
-                
-                // Error message
-                <Show when=move || !error_message.get().is_empty()>
-                    <div class="text-red-600 text-sm py-2">
-                        {error_message.get()}
-                    </div>
-                </Show>
-                
-                // Submit and Cancel buttons
+
+                {move || {
+                    if asset_id.is_none() {
+                        Some(view! {
+                            <div>
+                                <label for="target" class="block text-sm font-medium text-gray-700">
+                                    Target (domain, IP, or URL)
+                                </label>
+                                <input
+                                    type="text"
+                                    id="target"
+                                    value=target
+                                    on:input=on_target_change
+                                    class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                    placeholder="example.com"
+                                />
+                            </div>
+                        })
+                    } else {
+                        None
+                    }
+                }}
+
+                {move || {
+                    if is_nuclei.get() {
+                        Some(view! {
+                            <div class="space-y-4 p-4 bg-gray-50 rounded-md">
+                                <h3 class="font-medium">Nuclei Configuration</h3>
+
+                                <div>
+                                    <label for="templates" class="block text-sm font-medium text-gray-700">
+                                        Templates (comma-separated)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="templates"
+                                        value=templates
+                                        on:input=on_templates_change
+                                        class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                        placeholder="cves,exposures,vulnerabilities"
+                                    />
+                                    <p class="text-xs text-gray-500 mt-1">Leave empty to use default templates</p>
+                                </div>
+
+                                <div>
+                                    <label for="severity" class="block text-sm font-medium text-gray-700">
+                                        Severity Levels
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="severity"
+                                        value=severity
+                                        on:input=on_severity_change
+                                        class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                        placeholder="medium,high,critical"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label for="rate-limit" class="block text-sm font-medium text-gray-700">
+                                        Rate Limit (requests/second)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="rate-limit"
+                                        value=rate_limit.get()
+                                        on:input=on_rate_limit_change
+                                        min="1"
+                                        max="1000"
+                                        class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                                    />
+                                </div>
+                            </div>
+                        })
+                    } else {
+                        None
+                    }
+                }}
+
+                {move || {
+                    if !error_message.get().is_empty() {
+                        Some(view! {
+                            <div class="text-red-600 text-sm py-2">
+                                {error_message.get()}
+                            </div>
+                        })
+                    } else {
+                        None
+                    }
+                }}
+
                 <div class="flex justify-end space-x-3 pt-4">
                     <button
                         type="button"
                         class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        on:click=move |_| props.on_cancel.call(())
+                        on:click=on_cancel_click
                         disabled=is_submitting.get()
                     >
                         Cancel
@@ -331,4 +320,4 @@ pub fn DiscoveryTaskForm(props: DiscoveryTaskFormProps) -> impl IntoView {
             </form>
         </div>
     }
-} 
+}

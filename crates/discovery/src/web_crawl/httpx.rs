@@ -139,3 +139,9 @@ impl HttpxRunner {
         Ok(discovery_result)
     }
 }
+
+impl Default for HttpxRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}

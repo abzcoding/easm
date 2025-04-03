@@ -131,3 +131,9 @@ impl NaabuRunner {
         Ok(discovery_result)
     }
 }
+
+impl Default for NaabuRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
