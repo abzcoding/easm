@@ -5,15 +5,40 @@
 
 use crate::results::{DiscoveredDomain, DiscoveredIp, DiscoveryResult};
 use anyhow::Result;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 use trust_dns_resolver::config::{ResolverConfig, ResolverOpts};
 use trust_dns_resolver::proto::rr::RecordType;
 use trust_dns_resolver::TokioAsyncResolver;
 
+// Create a lazily initialized global resolver
+lazy_static! {
+    static ref DNS_RESOLVER: Mutex<Option<TokioAsyncResolver>> = Mutex::new(None);
+}
+
+// Helper function to get or initialize the resolver
+async fn get_resolver() -> Result<TokioAsyncResolver> {
+    let mut resolver_guard = DNS_RESOLVER.lock().map_err(|e| anyhow::anyhow!("Failed to acquire DNS resolver lock: {}", e))?;
+    
+    if resolver_guard.is_none() {
+        // Initialize the resolver if not already done
+        tracing::debug!("Initializing DNS resolver");
+        
+        // This isn't actually fallible in the same way as other Result-returning functions
+        *resolver_guard = Some(TokioAsyncResolver::tokio(
+            ResolverConfig::default(),
+            ResolverOpts::default(),
+        ));
+    }
+    
+    // Clone the resolver for the caller
+    Ok(resolver_guard.as_ref().unwrap().clone())
+}
+
 pub async fn enumerate_domain(target_domain: &str) -> Result<Vec<DiscoveryResult>> {
     tracing::debug!("Enumerating domain: {}", target_domain);
-    // TokioAsyncResolver::tokio is not fallible in the way the ? operator expects.
-    // Errors typically occur during resolution lookups.
-    let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+    // Get the shared resolver instead of creating a new one each time
+    let resolver = get_resolver().await?;
 
     let mut results: Vec<DiscoveryResult> = Vec::new();
     let source = format!("dns_enum_for_{}", target_domain);

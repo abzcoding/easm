@@ -50,22 +50,32 @@ easm/
 ├── crates/
 │   ├── api/         # Axum Web Server
 │   │   ├── Cargo.toml
+│   │   ├── tests/            # api crate unit tests
+│   │   │   ├── mod.rs
+│   │   │   ├── asset_handler_test.rs
+│   │   │   ├── health_test.rs
+│   │   │   └── vulnerability_handler_test.rs
 │   │   └── src/
 │   │       ├── main.rs       # Entry point, sets up Axum server, logging, state
 │   │       ├── routes.rs     # Defines API routes (e.g., /assets, /vulnerabilities)
 │   │       ├── handlers/     # Request handlers (controllers)
 │   │       │   ├── mod.rs
 │   │       │   ├── asset_handler.rs
-│   │       │   └── vulnerability_handler.rs
+│   │       │   ├── auth_handler.rs
+│   │       │   ├── health_handler.rs
+│   │       │   ├── vulnerability_handler.rs
 │   │       │   └── ...
 │   │       ├── middleware/   # Custom Axum middleware (auth, logging)
-│   │       │   └── mod.rs
+│   │       │   ├── mod.rs
+│   │       │   └── auth.rs
 │   │       ├── errors.rs     # API specific error types and conversions
+│   │       ├── test_utls.rs
 │   │       └── state.rs      # Application state (e.g., DB pool, config)
 │   │
 │   ├── backend/              # Core business logic, services, domain models
 │   │   ├── Cargo.toml
 │   │   ├── tests/            # backend crate unit tests
+│   │   │   ├── mod.rs
 │   │   │   ├── asset_service_test.rs
 │   │   │   ├── asset_test.rs
 │   │   │   └── discovery_service_test.rs
@@ -84,6 +94,7 @@ easm/
 │   │       ├── services/     # Business logic layer (e.g., AssetService, VulnerabilityService)
 │   │       │   ├── mod.rs
 │   │       │   ├── asset_service.rs
+│   │       │   ├── discovery.rs
 │   │       │   ├── vulnerability_service.rs
 │   │       │   └── discovery_service.rs
 │   │       ├── traits.rs     # Traits defining service/repository interfaces
@@ -94,12 +105,18 @@ easm/
 │   │   ├── tests/            # infrastructure crate tests
 │   │   │   ├── database_test.rs
 │   │   │   ├── migrations_test.rs
+│   │   │   ├── asset_repository_test.rs
+│   │   │   ├── discovery_job_repository_test.rs
+│   │   │   ├── vulnerability_repository_test.rs
+│   │   │   ├── migrations_test.rs
 │   │   │   ├── port_repository_test.rs
 │   │   │   ├── repository_factory_test.rs
 │   │   │   ├── technology_repository_test.rs
 │   │   │   └── utils_test.rs
 │   │   └── src/
 │   │       ├── lib.rs        # Module entry, connection pool setup
+│   │       ├── database/
+│   │       │   └── migrations.rs
 │   │       ├── repositories/ # Repository pattern implementations
 │   │       │   ├── mod.rs
 │   │       │   ├── asset.rs
@@ -119,6 +136,8 @@ easm/
 │   │
 │   ├── discovery/   # Modules for specific discovery tasks
 │   │   ├── Cargo.toml
+│   │   ├── tests/            # discovery crate unit tests
+│   │   │   └── ...
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── dns/          # DNS enumeration logic (e.g., using trust-dns-resolver)
@@ -149,6 +168,8 @@ easm/
 │   │
 │   └── tasks/ # Separate process/crate for running background jobs
 │       ├── Cargo.toml
+│       ├── tests/            # tasks crate unit tests
+│       │   └── ...
 │       └── src/
 │           ├── main.rs       # Worker entry point
 │           ├── job_processor.rs # Logic to pick up and run jobs (e.g., from DB or queue)
@@ -157,7 +178,6 @@ easm/
 ├── tests/    # integration tests
 │   ├── Cargo.toml
 │   ├── api_tests.rs
-│   ├── util_tests.rs
 │   ├── database_tests.rs
 │   └── ...
 │

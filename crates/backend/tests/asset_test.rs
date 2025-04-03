@@ -6,14 +6,11 @@ mod tests {
     #[test]
     fn test_asset_new() {
         let org_id = Uuid::new_v4();
-        let asset_type = AssetType::Domain;
-        let value = "example.com".to_string();
-
-        let asset = Asset::new(org_id, asset_type, value.clone(), None);
+        let asset = Asset::new(org_id, AssetType::Domain, "example.com".to_string(), None);
 
         assert_eq!(asset.organization_id, org_id);
-        assert_eq!(asset.asset_type, asset_type);
-        assert_eq!(asset.value, value);
+        assert_eq!(asset.asset_type, AssetType::Domain);
+        assert_eq!(asset.value, "example.com");
         assert_eq!(asset.status, AssetStatus::Active);
 
         // Verify timestamps were set
@@ -33,18 +30,43 @@ mod tests {
     #[test]
     fn test_asset_with_attributes() {
         let org_id = Uuid::new_v4();
-        let asset_type = AssetType::IPAddress;
-        let value = "192.0.2.1".to_string();
-
-        let attributes = serde_json::json!({
-            "location": "us-east-1",
-            "tags": ["production", "web"]
+        let attrs = serde_json::json!({
+            "dns_provider": "Example DNS",
+            "registrar": "Example Registrar"
         });
 
-        let asset = Asset::new(org_id, asset_type, value, Some(attributes.clone()));
+        let asset = Asset::new(
+            org_id,
+            AssetType::Domain,
+            "example.com".to_string(),
+            Some(attrs.clone()),
+        );
 
         assert_eq!(asset.organization_id, org_id);
-        assert_eq!(asset.asset_type, asset_type);
-        assert_eq!(asset.attributes, attributes);
+        assert_eq!(asset.asset_type, AssetType::Domain);
+        assert_eq!(asset.value, "example.com");
+        assert_eq!(asset.attributes, attrs);
+    }
+    
+    #[test]
+    fn test_asset_builder() {
+        let org_id = Uuid::new_v4();
+        let attrs = serde_json::json!({
+            "dns_provider": "Example DNS",
+            "registrar": "Example Registrar"
+        });
+        
+        // Test the builder with various settings
+        let asset = Asset::builder(org_id, AssetType::Domain, "example.com".to_string())
+            .status(AssetStatus::Inactive)
+            .attributes(attrs.clone())
+            .build();
+            
+        assert_eq!(asset.organization_id, org_id);
+        assert_eq!(asset.asset_type, AssetType::Domain);
+        assert_eq!(asset.value, "example.com");
+        assert_eq!(asset.status, AssetStatus::Inactive); // Custom status
+        assert_eq!(asset.attributes, attrs);
+        assert_eq!(asset.first_seen, asset.last_seen); // Should be the same by default
     }
 }
