@@ -4,7 +4,7 @@ use leptos::prelude::*;
 #[component]
 pub fn AssetsPage() -> impl IntoView {
     // In a real app, this would be fetched from API
-    let assets = create_signal(vec![
+    let (assets, _set_assets) = signal(vec![
         Asset {
             id: "1".to_string(),
             name: "example.com".to_string(),
@@ -39,13 +39,7 @@ pub fn AssetsPage() -> impl IntoView {
         },
     ]);
 
-    let selected_asset = create_signal::<Option<String>>(None);
-
-    let handle_asset_click = create_callback(move |id: String| {
-        selected_asset.set(Some(id));
-        log::info!("Asset selected: {}", id);
-        // In a real app, this would navigate to asset details or open a modal
-    });
+    let (_selected_asset, set_selected_asset) = signal::<Option<String>>(None);
 
     view! {
         <div class="page-container">
@@ -74,6 +68,14 @@ pub fn AssetsPage() -> impl IntoView {
 
             <div class="asset-grid">
                 {move || assets.get().into_iter().map(|asset| {
+                    let asset_id = asset.id.clone();
+                    let set_selected = set_selected_asset.clone();
+
+                    let on_click = Callback::new(move |_| {
+                        set_selected.set(Some(asset_id.clone()));
+                        log::info!("Asset selected: {}", asset_id);
+                    });
+
                     view! {
                         <AssetCard
                             id={asset.id.clone()}
@@ -82,7 +84,7 @@ pub fn AssetsPage() -> impl IntoView {
                             status={asset.status}
                             discovery_date={asset.discovery_date}
                             vulnerabilities_count={asset.vulnerabilities_count}
-                            on_click={handle_asset_click}
+                            on_click={on_click}
                         />
                     }
                 }).collect::<Vec<_>>()}

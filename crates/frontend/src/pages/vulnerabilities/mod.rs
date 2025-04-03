@@ -52,12 +52,13 @@ pub fn VulnerabilitiesPage() -> impl IntoView {
         },
     ];
 
-    let vulnerabilities_signal = create_signal(vulnerabilities);
+    let (vulnerabilities_signal, _set_vulnerabilities) = signal(vulnerabilities);
 
-    let handle_vuln_click = create_callback(|id: String| {
+    // We don't use this directly - marking as unused with _
+    let _handle_vuln_click = move |id: String| {
         log::info!("Vulnerability selected: {}", id);
         // In a real app, this would navigate to vulnerability details or open a modal
-    });
+    };
 
     let total_count = move || vulnerabilities_signal.get().len();
     let open_count = move || {
@@ -136,10 +137,15 @@ pub fn VulnerabilitiesPage() -> impl IntoView {
 
             <div class="vulnerability-grid">
                 {move || vulnerabilities_signal.get().iter().map(|vuln| {
+                    let vuln_id = vuln.id.clone();
+                    let on_click_callback = Callback::new(move |_| {
+                        log::info!("Vulnerability selected: {}", vuln_id);
+                    });
+
                     view! {
                         <VulnerabilityCard
                             vulnerability={vuln.clone()}
-                            on_click={handle_vuln_click.clone()}
+                            on_click={on_click_callback}
                         />
                     }
                 }).collect::<Vec<_>>()}
