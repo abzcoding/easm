@@ -13,6 +13,10 @@ use crate::{
     handlers::{
         asset_handler::{create_asset, delete_asset, get_asset, list_assets, update_asset},
         auth_handler::{login, register},
+        discovery_task_handler::{
+            cancel_discovery_task, create_discovery_task, delete_discovery_task,
+            get_discovery_task, list_discovery_tasks,
+        },
         health_handler::health_check,
         organization_handler::{
             create_organization, delete_organization, get_organization, list_organizations,
@@ -92,6 +96,30 @@ pub fn create_router(state: AppState) -> Router {
                 .route(
                     "/assets/{id}",
                     axum::routing::delete(delete_asset).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
+                )
+                // Discovery Tasks API
+                .route("/discovery-tasks", get(list_discovery_tasks))
+                .route(
+                    "/discovery-tasks",
+                    post(create_discovery_task).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
+                )
+                .route("/discovery-tasks/{id}", get(get_discovery_task))
+                .route(
+                    "/discovery-tasks/{id}/cancel",
+                    post(cancel_discovery_task).route_layer(from_fn_with_state(
+                        state.clone(),
+                        require_asset_modification,
+                    )),
+                )
+                .route(
+                    "/discovery-tasks/{id}",
+                    axum::routing::delete(delete_discovery_task).route_layer(from_fn_with_state(
                         state.clone(),
                         require_asset_modification,
                     )),

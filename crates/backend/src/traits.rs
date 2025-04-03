@@ -247,6 +247,11 @@ pub trait DiscoveryJobRepository: Send + Sync + 'static {
 
     async fn create_job_asset_link(&self, link: &JobAssetLink) -> Result<JobAssetLink>;
 
+    /// Link a job to an asset (convenience method that calls create_job_asset_link)
+    async fn link_job_to_asset(&self, link: &JobAssetLink) -> Result<JobAssetLink> {
+        self.create_job_asset_link(link).await
+    }
+
     async fn get_job_assets(&self, job_id: ID) -> Result<Vec<Asset>>;
 }
 

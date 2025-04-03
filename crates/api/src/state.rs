@@ -5,7 +5,7 @@ use backend::{
         AssetServiceImpl, DiscoveryServiceImpl, OrganizationServiceImpl, UserServiceImpl,
         VulnerabilityServiceImpl,
     },
-    AssetService, DiscoveryService, OrganizationService, UserService, VulnerabilityService,
+    AssetService, DiscoveryJobRepository, DiscoveryService, OrganizationService, UserService, VulnerabilityService,
 };
 use infrastructure::{database::Database, repositories::RepositoryFactory};
 use redis::Client as RedisClient;
@@ -21,6 +21,7 @@ pub struct AppState {
     pub asset_service: Arc<dyn AssetService>,
     pub vulnerability_service: Arc<dyn VulnerabilityService>,
     pub discovery_service: Arc<dyn DiscoveryService>,
+    pub discovery_job_repository: Arc<dyn DiscoveryJobRepository>,
     pub user_service: Arc<dyn UserService>,
     pub organization_service: Arc<dyn OrganizationService>,
 }
@@ -48,6 +49,7 @@ impl AppState {
         let asset_repo = repo_factory.asset_repository();
         let vulnerability_repo = repo_factory.vulnerability_repository();
         let discovery_asset_repo = repo_factory.asset_repository();
+        let discovery_job_repo = repo_factory.discovery_job_repository();
         let organization_repo = repo_factory.organization_repository();
 
         // Create services
@@ -70,6 +72,7 @@ impl AppState {
             asset_service,
             vulnerability_service,
             discovery_service,
+            discovery_job_repository: discovery_job_repo,
             user_service,
             organization_service,
         })
