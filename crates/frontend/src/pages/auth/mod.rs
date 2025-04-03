@@ -1,18 +1,17 @@
 use crate::pages::auth::hooks::use_navigate;
 use leptos::prelude::*;
-use leptos::*;
 use leptos_router::*;
 use web_sys::HtmlInputElement;
 
 #[component]
 pub fn LoginPage() -> impl IntoView {
-    let (username, set_username) = create_signal(String::new());
-    let (password, set_password) = create_signal(String::new());
-    let (error, set_error) = create_signal(String::new());
+    let (username, set_username) = signal(String::new());
+    let (password, set_password) = signal(String::new());
+    let (error, set_error) = signal(String::new());
     let navigate = use_navigate();
 
     // Create a stable function that can be called multiple times (FnMut)
-    let handle_submit = create_action(move |_: &()| {
+    let handle_submit = Action::new(move |_: &()| {
         let username_val = username.get();
         let password_val = password.get();
         let nav = navigate.clone();
@@ -46,18 +45,9 @@ pub fn LoginPage() -> impl IntoView {
             <div class="card login-card">
                 <h1 class="login-title">"Login to EASM"</h1>
 
-                {move || {
-                    let err = error.get();
-                    if !err.is_empty() {
-                        view! {
-                            <div class="alert alert-danger">
-                                {err}
-                            </div>
-                        }
-                    } else {
-                        view! { <div></div> }
-                    }
-                }}
+                <div class="alert alert-danger" style=move || if error.get().is_empty() { "display: none" } else { "display: block" }>
+                    {move || error.get()}
+                </div>
 
                 <form on:submit=on_submit>
                     <div class="form-group">

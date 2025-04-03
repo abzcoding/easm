@@ -1,17 +1,27 @@
 use leptos::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::{
+    components::{Outlet, ParentRoute, Route, Router, Routes},
+    path,
+};
 
 use crate::components::layout::{AppLayout, AuthLayout};
 use crate::pages::{
     assets::AssetsPage, auth::LoginPage, dashboard::DashboardPage, discovery::DiscoveryPage,
     not_found::NotFoundPage, technologies::TechnologiesPage, vulnerabilities::VulnerabilitiesPage,
 };
-use crate::router::components::*;
 
-// Wrapper component for AppLayout to use with routes
 #[component]
-fn AppLayoutWrapper() -> impl IntoView {
+fn LoginView() -> impl IntoView {
+    view! {
+        <AuthLayout>
+            <LoginPage/>
+        </AuthLayout>
+    }
+}
+
+#[component]
+fn MainLayout() -> impl IntoView {
     view! {
         <AppLayout>
             <Outlet/>
@@ -20,26 +30,62 @@ fn AppLayoutWrapper() -> impl IntoView {
 }
 
 #[component]
+fn NotFoundView() -> impl IntoView {
+    view! {
+        <NotFoundPage/>
+    }
+}
+
+#[component]
+fn DashboardView() -> impl IntoView {
+    view! {
+        <DashboardPage/>
+    }
+}
+
+#[component]
+fn AssetsView() -> impl IntoView {
+    view! {
+        <AssetsPage/>
+    }
+}
+
+#[component]
+fn TechnologiesView() -> impl IntoView {
+    view! {
+        <TechnologiesPage/>
+    }
+}
+
+#[component]
+fn VulnerabilityView() -> impl IntoView {
+    view! {
+        <VulnerabilitiesPage/>
+    }
+}
+
+#[component]
+fn DiscoveryView() -> impl IntoView {
+    view! {
+        <DiscoveryPage/>
+    }
+}
+
+#[component]
 pub fn AppRouter() -> impl IntoView {
-    // Provide the router to the app
     view! {
         <Stylesheet id="main" href="/style/output.css"/>
         <Router>
-            <Routes>
-                // Auth routes
-                <Route path="login" view=|| view! { <AuthLayout><LoginPage/></AuthLayout> }/>
-
-                // Protected app routes
-                <Route path="" view=AppLayoutWrapper>
-                    <Route path="/" view=|| view! { <DashboardPage/> }/>
-                    <Route path="/assets" view=|| view! { <AssetsPage/> }/>
-                    <Route path="/technologies" view=|| view! { <TechnologiesPage/> }/>
-                    <Route path="/vulnerabilities" view=|| view! { <VulnerabilitiesPage/> }/>
-                    <Route path="/discovery" view=|| view! { <DiscoveryPage/> }/>
-                </Route>
-
-                // 404 route
-                <Route path="/*" view=|| view! { <NotFoundPage/> }/>
+            <Routes fallback=|| view! { <NotFoundView/> }>
+                <Route path=path!("login") view=LoginView/>
+                <ParentRoute path=path!("") view=MainLayout>
+                    <Route path=path!("/") view=DashboardView/>
+                    <Route path=path!("assets") view=AssetsView/>
+                    <Route path=path!("technologies") view=TechnologiesView/>
+                    <Route path=path!("vulnerabilities") view=VulnerabilityView/>
+                    <Route path=path!("discovery") view=DiscoveryView/>
+                </ParentRoute>
+                <Route path=path!("*") view=NotFoundView/>
             </Routes>
         </Router>
     }

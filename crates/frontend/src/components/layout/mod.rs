@@ -1,7 +1,7 @@
-use crate::components::layout::hooks::use_location;
 use leptos::prelude::*;
-use leptos::*;
-use leptos_router::*;
+
+use leptos_router::components::*;
+use leptos_router::hooks::use_location;
 
 #[component]
 pub fn AppLayout(children: Children) -> impl IntoView {
@@ -39,14 +39,14 @@ fn Navbar() -> impl IntoView {
     view! {
         <nav class="navbar">
             <div class="navbar-container container">
-                <A href="/" class="navbar-brand">
+                <A href="/" attr:class="navbar-brand">
                     "EASM"
                 </A>
 
                 <div class="navbar-nav">
                     <A
                         href="/"
-                        class=move || if is_active("/") && location.pathname.get() == "/" {
+                        attr:class=move || if is_active("/") && location.pathname.get() == "/" {
                             "nav-link active"
                         } else {
                             "nav-link"
@@ -56,7 +56,7 @@ fn Navbar() -> impl IntoView {
                     </A>
                     <A
                         href="/assets"
-                        class=move || if is_active("/assets") {
+                        attr:class=move || if is_active("/assets") {
                             "nav-link active"
                         } else {
                             "nav-link"
@@ -66,7 +66,7 @@ fn Navbar() -> impl IntoView {
                     </A>
                     <A
                         href="/technologies"
-                        class=move || if is_active("/technologies") {
+                        attr:class=move || if is_active("/technologies") {
                             "nav-link active"
                         } else {
                             "nav-link"
@@ -76,7 +76,7 @@ fn Navbar() -> impl IntoView {
                     </A>
                     <A
                         href="/vulnerabilities"
-                        class=move || if is_active("/vulnerabilities") {
+                        attr:class=move || if is_active("/vulnerabilities") {
                             "nav-link active"
                         } else {
                             "nav-link"
@@ -86,7 +86,7 @@ fn Navbar() -> impl IntoView {
                     </A>
                     <A
                         href="/discovery"
-                        class=move || if is_active("/discovery") {
+                        attr:class=move || if is_active("/discovery") {
                             "nav-link active"
                         } else {
                             "nav-link"

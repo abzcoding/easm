@@ -5,7 +5,6 @@ mod router;
 mod utils;
 
 use leptos::prelude::*;
-use leptos::*;
 use router::AppRouter;
 
 fn main() {
