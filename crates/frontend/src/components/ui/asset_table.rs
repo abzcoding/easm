@@ -40,24 +40,22 @@ pub fn AssetTable(
                 <tbody>
                     {move || {
                         if loading {
-                            let loading_row = view! {
+                            vec![view! {
                                 <tr class="loading-row">
                                     <td colspan="5" class="loading-cell">
                                         <div class="loading-spinner"></div>
                                         <span>"Loading assets..."</span>
                                     </td>
                                 </tr>
-                            };
-                            vec![loading_row].into_view()
+                            }.into_any()].into_view()
                         } else if assets.get().is_empty() {
-                            let empty_row = view! {
+                            vec![view! {
                                 <tr class="empty-row">
                                     <td colspan="5" class="empty-cell">
                                         {empty_message.clone()}
                                     </td>
                                 </tr>
-                            };
-                            vec![empty_row].into_view()
+                            }.into_any()].into_view()
                         } else {
                             assets.get().iter().map(|asset| {
                                 let asset_clone = asset.clone();
@@ -88,7 +86,7 @@ pub fn AssetTable(
                                         <td>{move || discovery_date.clone()}</td>
                                         <td><span class="vuln-count">{move || vuln_count.clone()}</span></td>
                                     </tr>
-                                }
+                                }.into_any()
                             }).collect::<Vec<_>>().into_view()
                         }
                     }}

@@ -3,7 +3,7 @@ use web_sys::MouseEvent;
 
 /// A reusable data table component
 #[component]
-pub fn DataTable<T: Clone + 'static>(
+pub fn DataTable<T: Clone + Send + Sync + 'static>(
     /// Headers for the table columns
     #[prop(into)]
     headers: Vec<String>,
@@ -12,7 +12,7 @@ pub fn DataTable<T: Clone + 'static>(
     data: Vec<T>,
     /// Function to map data items to row cells
     #[prop(into)]
-    row_mapper: Box<dyn Fn(&T) -> Vec<String>>,
+    row_mapper: Box<dyn Fn(&T) -> Vec<String> + Send + Sync>,
     /// Optional function for handling row clicks
     #[prop(into, optional)]
     on_row_click: Option<Callback<(T, MouseEvent)>>,
@@ -26,8 +26,11 @@ pub fn DataTable<T: Clone + 'static>(
     #[prop(default = "No data available.".to_string())]
     empty_message: String,
 ) -> impl IntoView {
+    // Create a signal for data
+    let data = RwSignal::new(data);
+
     // Computed property to determine if data is empty
-    let is_empty = move || data.is_empty() && !loading;
+    let is_empty = move || data.get().is_empty() && !loading;
 
     // Format class string
     let table_class = move || format!("data-table {}", class.clone().unwrap_or_default());
@@ -57,24 +60,24 @@ pub fn DataTable<T: Clone + 'static>(
                 <tbody>
                     {move || {
                         if loading {
-                            view! {
+                            vec![view! {
                                 <tr class="loading-row">
                                     <td colspan={headers_len.clone()} class="loading-cell">
                                         <div class="loading-spinner"></div>
                                         <span>"Loading..."</span>
                                     </td>
                                 </tr>
-                            }.into_view()
+                            }.into_any()].into_view()
                         } else if is_empty() {
-                            view! {
+                            vec![view! {
                                 <tr class="empty-row">
                                     <td colspan={headers_len.clone()} class="empty-cell">
                                         {empty_message.clone()}
                                     </td>
                                 </tr>
-                            }.into_view()
+                            }.into_any()].into_view()
                         } else {
-                            data.iter().map(|item| {
+                            data.get().iter().map(|item| {
                                 let item_clone = item.clone();
                                 let row_cells = (row_mapper)(item);
 
@@ -96,7 +99,7 @@ pub fn DataTable<T: Clone + 'static>(
                                         <td>{row_cells.get(3).cloned().unwrap_or_default()}</td>
                                         <td>{row_cells.get(4).cloned().unwrap_or_default()}</td>
                                     </tr>
-                                }
+                                }.into_any()
                             }).collect::<Vec<_>>().into_view()
                         }
                     }}
