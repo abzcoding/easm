@@ -3,6 +3,7 @@ pub mod handlers;
 pub mod middleware;
 pub mod routes;
 pub mod state;
+pub mod test_utils;
 
 use std::net::SocketAddr;
 
