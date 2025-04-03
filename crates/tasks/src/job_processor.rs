@@ -87,3 +87,86 @@ async fn process_discovery_result(asset_service: &AssetServiceImpl, org_id: Uuid
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*; // Import items from parent module (job_processor)
+    use backend::{
+        errors as backend_error, // Alias to avoid conflict with anyhow::Error
+        traits::AssetRepository,
+        Result as BackendResult, // Use the Result alias from backend
+    };
+    use mockall::{mock, predicate::*};
+    use std::sync::Arc;
+
+    mock! {
+        pub AssetRepository {}
+
+        #[async_trait::async_trait]
+        impl AssetRepository for AssetRepository {
+            // Use BackendResult and backend::Error
+            async fn create_asset(&self, asset: &Asset) -> BackendResult<Asset>;
+            async fn get_asset(&self, id: Uuid) -> BackendResult<Asset>;
+            async fn update_asset(&self, asset: &Asset) -> BackendResult<Asset>;
+            async fn delete_asset(&self, id: Uuid) -> BackendResult<bool>;
+            async fn list_assets(
+                &self,
+                organization_id: Option<Uuid>,
+                asset_type: Option<AssetType>,
+                status: Option<AssetStatus>,
+                limit: usize,
+                offset: usize,
+            ) -> BackendResult<Vec<Asset>>;
+            async fn count_assets(
+                &self,
+                organization_id: Option<Uuid>,
+                asset_type: Option<AssetType>,
+                status: Option<AssetStatus>,
+            ) -> BackendResult<usize>;
+        }
+    }
+
+    #[tokio::test]
+    async fn test_process_discovery_result_success() {
+        let mut mock_repo = MockAssetRepository::new();
+        let org_id = Uuid::new_v4();
+
+        mock_repo
+            .expect_create_asset()
+            .withf(move |asset: &Asset| {
+                asset.organization_id == org_id && asset.value == "example.com"
+            })
+            .times(1)
+            .returning(|asset| Ok(asset.clone())); // Ok uses BackendResult<Asset>
+
+        let asset_service = AssetServiceImpl::new(Arc::new(mock_repo));
+        let result = process_discovery_result(&asset_service, org_id).await;
+
+        // The function itself returns anyhow::Result, so this assertion is okay
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_process_discovery_result_failure() {
+        let mut mock_repo = MockAssetRepository::new();
+        let org_id = Uuid::new_v4();
+
+        mock_repo
+            .expect_create_asset()
+            .withf(move |asset: &Asset| {
+                asset.organization_id == org_id && asset.value == "example.com"
+            })
+            .times(1)
+            // Use the correct Database variant
+            .returning(|_| Err(backend_error::Error::Database("Mock DB error".to_string())));
+
+        let asset_service = AssetServiceImpl::new(Arc::new(mock_repo));
+        let result = process_discovery_result(&asset_service, org_id).await;
+
+        assert!(result.is_err());
+        let err_string = result.unwrap_err().to_string();
+        assert!(err_string.contains("Failed to create asset"));
+        // Check that the underlying Database error message is included
+        assert!(err_string.contains("Database error: Mock DB error"));
+    }
+}

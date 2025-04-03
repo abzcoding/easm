@@ -26,3 +26,8 @@ chrono = { workspace = true }
 dotenvy = { workspace = true }
 uuid = { workspace = true }
 url = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+mockall = { workspace = true }
+test-context = { workspace = true }
