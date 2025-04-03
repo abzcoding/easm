@@ -37,3 +37,4 @@ uuid = { workspace = true }
 http-body-util.workspace = true
 tower-service = { workspace = true}
 anyhow = { workspace = true }
+url = { workspace = true, features = ["serde"] }

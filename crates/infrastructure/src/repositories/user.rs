@@ -1,8 +1,8 @@
 use crate::utils::{from_offset_datetime, to_offset_datetime};
 use async_trait::async_trait;
-use backend::{models::User, traits::UserRepository, Result};
+use backend::{errors::Error as BackendError, models::User, traits::UserRepository, Result};
 use shared::types::{UserRole, ID};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 /// PostgreSQL implementation of the User Repository
 pub struct PgUserRepository {
@@ -219,152 +219,71 @@ impl UserRepository for PgUserRepository {
         limit: usize,
         offset: usize,
     ) -> Result<Vec<User>> {
+        // Use QueryBuilder to dynamically build the query
+        let mut query_builder = sqlx::QueryBuilder::new(
+            "SELECT id, organization_id, username, email, role, password_hash, created_at, updated_at FROM users WHERE 1=1"
+        );
+
+        // Add filters conditionally
         if let Some(org_id) = organization_id {
-            if let Some(role_val) = role {
-                // Both organization_id and role are provided
-                let records = sqlx::query!(
-                    r#"
-                    SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
-                    FROM users
-                    WHERE organization_id = $1 AND role = $2
-                    ORDER BY username
-                    LIMIT $3 OFFSET $4
-                    "#,
-                    org_id,
-                    role_val as UserRole,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(&self.pool)
-                .await?;
-                let users = records
-                    .into_iter()
-                    .map(|record| User {
-                        id: record.id,
-                        organization_id: record
-                            .organization_id
-                            .expect("organization_id should not be null"),
-                        username: record.username,
-                        email: record.email,
-                        role: record.role.expect("role should not be null"),
-                        password_hash: record.password_hash,
-                        created_at: from_offset_datetime(Some(
-                            record.created_at.expect("created_at should not be null"),
-                        )),
-                        updated_at: from_offset_datetime(Some(
-                            record.updated_at.expect("updated_at should not be null"),
-                        )),
-                    })
-                    .collect();
-                return Ok(users);
-            } else {
-                // Only organization_id is provided
-                let records = sqlx::query!(
-                    r#"
-                    SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
-                    FROM users
-                    WHERE organization_id = $1
-                    ORDER BY username
-                    LIMIT $2 OFFSET $3
-                    "#,
-                    org_id,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(&self.pool)
-                .await?;
-                let users = records
-                    .into_iter()
-                    .map(|record| User {
-                        id: record.id,
-                        organization_id: record
-                            .organization_id
-                            .expect("organization_id should not be null"),
-                        username: record.username,
-                        email: record.email,
-                        role: record.role.expect("role should not be null"),
-                        password_hash: record.password_hash,
-                        created_at: from_offset_datetime(Some(
-                            record.created_at.expect("created_at should not be null"),
-                        )),
-                        updated_at: from_offset_datetime(Some(
-                            record.updated_at.expect("updated_at should not be null"),
-                        )),
-                    })
-                    .collect();
-                return Ok(users);
-            }
-        } else if let Some(role_val) = role {
-            // Only role is provided
-            let records = sqlx::query!(
-                r#"
-                SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
-                FROM users
-                WHERE role = $1
-                ORDER BY username
-                LIMIT $2 OFFSET $3
-                "#,
-                role_val as UserRole,
-                limit as i64,
-                offset as i64
-            )
-            .fetch_all(&self.pool)
-            .await?;
-            let users = records
-                .into_iter()
-                .map(|record| User {
-                    id: record.id,
-                    organization_id: record
-                        .organization_id
-                        .expect("organization_id should not be null"),
-                    username: record.username,
-                    email: record.email,
-                    role: record.role.expect("role should not be null"),
-                    password_hash: record.password_hash,
-                    created_at: from_offset_datetime(Some(
-                        record.created_at.expect("created_at should not be null"),
-                    )),
-                    updated_at: from_offset_datetime(Some(
-                        record.updated_at.expect("updated_at should not be null"),
-                    )),
-                })
-                .collect();
-            return Ok(users);
-        } else {
-            // No filters provided
-            let records = sqlx::query!(
-                r#"
-                SELECT id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
-                FROM users
-                ORDER BY username
-                LIMIT $1 OFFSET $2
-                "#,
-                limit as i64,
-                offset as i64
-            )
-            .fetch_all(&self.pool)
-            .await?;
-            let users = records
-                .into_iter()
-                .map(|record| User {
-                    id: record.id,
-                    organization_id: record
-                        .organization_id
-                        .expect("organization_id should not be null"),
-                    username: record.username,
-                    email: record.email,
-                    role: record.role.expect("role should not be null"),
-                    password_hash: record.password_hash,
-                    created_at: from_offset_datetime(Some(
-                        record.created_at.expect("created_at should not be null"),
-                    )),
-                    updated_at: from_offset_datetime(Some(
-                        record.updated_at.expect("updated_at should not be null"),
-                    )),
-                })
-                .collect();
-            return Ok(users);
+            query_builder.push(" AND organization_id = ");
+            query_builder.push_bind(org_id);
         }
+
+        if let Some(role_val) = role {
+            query_builder.push(" AND role = ");
+            query_builder.push_bind(role_val);
+        }
+
+        // Add ordering and pagination
+        query_builder
+            .push(" ORDER BY username LIMIT ")
+            .push_bind(limit as i64)
+            .push(" OFFSET ")
+            .push_bind(offset as i64);
+
+        // Build and execute the query
+        let query = query_builder.build_query_as::<(
+            ID,
+            Option<ID>,
+            String,
+            String,
+            UserRole,
+            String,
+            Option<sqlx::types::time::OffsetDateTime>,
+            Option<sqlx::types::time::OffsetDateTime>,
+        )>();
+
+        let records = query.fetch_all(&self.pool).await?;
+
+        // Map the results to User objects
+        let users = records
+            .into_iter()
+            .map(|record| {
+                let (
+                    id,
+                    organization_id,
+                    username,
+                    email,
+                    role,
+                    password_hash,
+                    created_at,
+                    updated_at,
+                ) = record;
+                User {
+                    id,
+                    organization_id: organization_id.expect("organization_id should not be null"),
+                    username,
+                    email,
+                    role,
+                    password_hash,
+                    created_at: from_offset_datetime(created_at),
+                    updated_at: from_offset_datetime(updated_at),
+                }
+            })
+            .collect();
+
+        Ok(users)
     }
 
     async fn count_users(
@@ -372,58 +291,32 @@ impl UserRepository for PgUserRepository {
         organization_id: Option<ID>,
         role: Option<UserRole>,
     ) -> Result<usize> {
-        let count = if let Some(org_id) = organization_id {
-            if let Some(role_val) = role {
-                // Both organization_id and role are provided
-                sqlx::query_scalar!(
-                    r#"
-                    SELECT COUNT(*) as count
-                    FROM users
-                    WHERE organization_id = $1 AND role = $2
-                    "#,
-                    org_id,
-                    role_val as UserRole,
-                )
-                .fetch_one(&self.pool)
-                .await?
-            } else {
-                // Only organization_id is provided
-                sqlx::query_scalar!(
-                    r#"
-                    SELECT COUNT(*) as count
-                    FROM users
-                    WHERE organization_id = $1
-                    "#,
-                    org_id,
-                )
-                .fetch_one(&self.pool)
-                .await?
-            }
-        } else if let Some(role_val) = role {
-            // Only role is provided
-            sqlx::query_scalar!(
-                r#"
-                SELECT COUNT(*) as count
-                FROM users
-                WHERE role = $1
-                "#,
-                role_val as UserRole,
-            )
-            .fetch_one(&self.pool)
-            .await?
-        } else {
-            // No filters provided
-            sqlx::query_scalar!(
-                r#"
-                SELECT COUNT(*) as count
-                FROM users
-                "#
-            )
-            .fetch_one(&self.pool)
-            .await?
+        // Use QueryBuilder to dynamically build the count query
+        let mut query_builder =
+            sqlx::QueryBuilder::new("SELECT COUNT(*) as count FROM users WHERE 1=1");
+
+        // Add filters conditionally
+        if let Some(org_id) = organization_id {
+            query_builder.push(" AND organization_id = ");
+            query_builder.push_bind(org_id);
+        }
+
+        if let Some(role_val) = role {
+            query_builder.push(" AND role = ");
+            query_builder.push_bind(role_val);
+        }
+
+        // Build and execute the query
+        let query = query_builder.build();
+        let row = query.fetch_one(&self.pool).await?;
+
+        // Get count value with error handling
+        let count: i64 = match row.try_get("count") {
+            Ok(val) => val,
+            Err(_) => 0,
         };
 
-        Ok(count.unwrap_or(0) as usize)
+        Ok(count as usize)
     }
 
     async fn find_by_email(&self, email: &str) -> Result<Option<User>> {
@@ -454,5 +347,71 @@ impl UserRepository for PgUserRepository {
                 r.updated_at.expect("updated_at should not be null"),
             )),
         }))
+    }
+
+    async fn atomic_register_user(&self, email: &str, user: &User) -> Result<User> {
+        // Begin a transaction
+        let mut tx = self.pool.begin().await?;
+
+        // First check if the email already exists within the transaction
+        let record = sqlx::query!(
+            r#"
+            SELECT id FROM users WHERE email = $1
+            "#,
+            email
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        // If email exists, abort with conflict error
+        if record.is_some() {
+            tx.rollback().await?;
+            return Err(BackendError::Conflict("Email already exists".to_string()));
+        }
+
+        // Email doesn't exist, create the user
+        // Convert DateTime types for database operation
+        let created_at = to_offset_datetime(user.created_at);
+        let updated_at = to_offset_datetime(user.updated_at);
+
+        // Insert the user
+        let record = sqlx::query!(
+            r#"
+            INSERT INTO users (id, organization_id, username, email, role, password_hash, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, organization_id, username, email, role as "role: UserRole", password_hash, created_at, updated_at
+            "#,
+            user.id,
+            user.organization_id,
+            user.username,
+            user.email,
+            user.role as UserRole,
+            user.password_hash,
+            created_at,
+            updated_at
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // Commit the transaction
+        tx.commit().await?;
+
+        // Convert back from DB types to model types
+        Ok(User {
+            id: record.id,
+            organization_id: record
+                .organization_id
+                .expect("organization_id should not be null"),
+            username: record.username,
+            email: record.email,
+            role: record.role.expect("role should not be null"),
+            password_hash: record.password_hash,
+            created_at: from_offset_datetime(Some(
+                record.created_at.expect("created_at should not be null"),
+            )),
+            updated_at: from_offset_datetime(Some(
+                record.updated_at.expect("updated_at should not be null"),
+            )),
+        })
     }
 }

@@ -55,6 +55,9 @@ pub trait UserRepository: Send + Sync + 'static {
         organization_id: Option<ID>,
         role: Option<UserRole>,
     ) -> Result<usize>;
+
+    /// Atomically checks if email exists and creates user if it doesn't
+    async fn atomic_register_user(&self, email: &str, user: &User) -> Result<User>;
 }
 
 #[async_trait]

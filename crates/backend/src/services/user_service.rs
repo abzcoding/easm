@@ -43,12 +43,6 @@ impl UserService for UserServiceImpl {
             .get_organization(*organization_id)
             .await?;
 
-        // Validate email uniqueness
-        let existing_user = self.repository.find_by_email(email).await?;
-        if existing_user.is_some() {
-            return Err(BackendError::Conflict("Email already exists".to_string()));
-        }
-
         // Hash password
         let password_hash = hash_password(password)?;
 
@@ -67,8 +61,9 @@ impl UserService for UserServiceImpl {
             ),
         );
 
-        // Save user
-        let created_user = self.repository.create_user(&user).await?;
+        // Use atomic operation to check email and create user
+        let created_user = self.repository.atomic_register_user(email, &user).await?;
+
         Ok(created_user)
     }
 

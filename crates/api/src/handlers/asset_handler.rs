@@ -6,10 +6,105 @@ use axum::{
 use backend::models::Asset;
 use serde::{Deserialize, Serialize};
 use shared::types::{AssetStatus, AssetType, ID};
-use std::sync::Arc;
+use std::{net::IpAddr, sync::Arc};
+use url::Url;
 use uuid::Uuid;
 
-use crate::{errors::Result, state::AppState};
+use crate::{errors::ApiError, errors::Result, state::AppState};
+
+// Validation functions
+fn is_valid_domain(domain: &str) -> bool {
+    // Basic domain validation - more comprehensive validation could be implemented
+    if domain.is_empty() || domain.len() > 255 {
+        return false;
+    }
+
+    // Check for valid domain format (alphanumeric + hyphens, with dots as separators)
+    let labels: Vec<&str> = domain.split('.').collect();
+
+    // At least one dot and a TLD
+    if labels.len() < 2 {
+        return false;
+    }
+
+    // Each label should follow domain naming rules
+    for label in labels {
+        // Labels must be 1-63 characters
+        if label.is_empty() || label.len() > 63 {
+            return false;
+        }
+
+        // Check characters (alphanumeric or hyphen, but not starting/ending with hyphen)
+        if label.starts_with('-') || label.ends_with('-') {
+            return false;
+        }
+
+        if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn is_valid_ip_address(ip: &str) -> bool {
+    // Parse as IP address
+    ip.parse::<IpAddr>().is_ok()
+}
+
+fn is_valid_webapp(url: &str) -> bool {
+    match Url::parse(url) {
+        Ok(parsed_url) => {
+            // Check if scheme is http or https
+            let scheme = parsed_url.scheme();
+            if scheme != "http" && scheme != "https" {
+                return false;
+            }
+
+            // Must have a host
+            if parsed_url.host().is_none() {
+                return false;
+            }
+
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+fn is_valid_certificate(cert: &str) -> bool {
+    // Basic validation for certificate fingerprints or domains
+    // For simplicity, assuming it's either a domain or a SHA1/SHA256 fingerprint
+    if is_valid_domain(cert) {
+        return true;
+    }
+
+    // Check if it looks like a SHA1 (40 hex chars) or SHA256 (64 hex chars) fingerprint
+    let clean_cert = cert.replace(":", "").replace(" ", "");
+    (clean_cert.len() == 40 || clean_cert.len() == 64)
+        && clean_cert.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn is_valid_code_repo(repo_url: &str) -> bool {
+    // Basic URL validation for code repositories
+    match Url::parse(repo_url) {
+        Ok(parsed_url) => {
+            let scheme = parsed_url.scheme();
+            // Common repository schemes
+            if scheme != "http" && scheme != "https" && scheme != "git" && scheme != "ssh" {
+                return false;
+            }
+
+            // Must have a host
+            if parsed_url.host().is_none() {
+                return false;
+            }
+
+            true
+        }
+        Err(_) => false,
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct AssetQuery {
@@ -44,7 +139,9 @@ pub async fn list_assets(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AssetQuery>,
 ) -> Result<Json<AssetListResponse>> {
-    let limit = query.limit.unwrap_or(20);
+    // Limit maximum page size
+    const MAX_LIMIT: usize = 100;
+    let limit = query.limit.unwrap_or(20).min(MAX_LIMIT);
     let offset = query.offset.unwrap_or(0);
 
     // Get assets from service
@@ -82,6 +179,50 @@ pub async fn create_asset(
     State(state): State<Arc<AppState>>,
     Json(asset_request): Json<CreateAssetRequest>,
 ) -> Result<(StatusCode, Json<Asset>)> {
+    // Validate input based on asset type
+    match asset_request.asset_type {
+        AssetType::Domain => {
+            if !is_valid_domain(&asset_request.value) {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid domain format: {}",
+                    asset_request.value
+                )));
+            }
+        }
+        AssetType::IPAddress => {
+            if !is_valid_ip_address(&asset_request.value) {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid IP address format: {}",
+                    asset_request.value
+                )));
+            }
+        }
+        AssetType::WebApp => {
+            if !is_valid_webapp(&asset_request.value) {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid web application URL: {}",
+                    asset_request.value
+                )));
+            }
+        }
+        AssetType::Certificate => {
+            if !is_valid_certificate(&asset_request.value) {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid certificate identifier: {}",
+                    asset_request.value
+                )));
+            }
+        }
+        AssetType::CodeRepo => {
+            if !is_valid_code_repo(&asset_request.value) {
+                return Err(ApiError::BadRequest(format!(
+                    "Invalid code repository URL: {}",
+                    asset_request.value
+                )));
+            }
+        }
+    }
+
     // Create asset model from request
     let asset = Asset::new(
         asset_request.organization_id,
