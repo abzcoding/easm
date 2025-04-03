@@ -47,7 +47,7 @@ mod tests {
         assert_eq!(asset.value, "example.com");
         assert_eq!(asset.attributes, attrs);
     }
-    
+
     #[test]
     fn test_asset_builder() {
         let org_id = Uuid::new_v4();
@@ -55,13 +55,13 @@ mod tests {
             "dns_provider": "Example DNS",
             "registrar": "Example Registrar"
         });
-        
+
         // Test the builder with various settings
         let asset = Asset::builder(org_id, AssetType::Domain, "example.com".to_string())
             .status(AssetStatus::Inactive)
             .attributes(attrs.clone())
             .build();
-            
+
         assert_eq!(asset.organization_id, org_id);
         assert_eq!(asset.asset_type, AssetType::Domain);
         assert_eq!(asset.value, "example.com");

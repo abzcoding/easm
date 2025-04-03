@@ -62,7 +62,7 @@ impl Asset {
                 .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
         }
     }
-    
+
     /// Create a builder for more complex asset construction
     pub fn builder(organization_id: ID, asset_type: AssetType, value: String) -> AssetBuilder {
         AssetBuilder::new(organization_id, asset_type, value)
@@ -86,7 +86,7 @@ impl AssetBuilder {
     pub fn new(organization_id: ID, asset_type: AssetType, value: String) -> Self {
         Self {
             organization_id,
-            asset_type, 
+            asset_type,
             value,
             status: AssetStatus::Active,
             attributes: serde_json::Value::Object(serde_json::Map::new()),
@@ -95,38 +95,38 @@ impl AssetBuilder {
             last_seen: None,
         }
     }
-    
+
     pub fn status(mut self, status: AssetStatus) -> Self {
         self.status = status;
         self
     }
-    
+
     pub fn attributes(mut self, attributes: serde_json::Value) -> Self {
         self.attributes = attributes;
         self
     }
-    
+
     pub fn timestamp(mut self, timestamp: Timestamp) -> Self {
         self.timestamp = Some(timestamp);
         self
     }
-    
+
     pub fn first_seen(mut self, first_seen: Timestamp) -> Self {
         self.first_seen = Some(first_seen);
         self
     }
-    
+
     pub fn last_seen(mut self, last_seen: Timestamp) -> Self {
         self.last_seen = Some(last_seen);
         self
     }
-    
+
     pub fn build(self) -> Asset {
         use chrono::Utc;
         use uuid::Uuid;
-        
+
         let now = self.timestamp.unwrap_or_else(|| Utc::now());
-        
+
         Asset {
             id: Uuid::new_v4(),
             organization_id: self.organization_id,

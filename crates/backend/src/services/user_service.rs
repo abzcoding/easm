@@ -94,8 +94,19 @@ impl UserService for UserServiceImpl {
 // Helper function for password hashing
 fn hash_password(password: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
-    // Argon2::default() returns the recommended Argon2id variant.
-    let argon2 = Argon2::default();
+
+    // Configure Argon2 with explicit parameters for better security
+    let argon2 = Argon2::new(
+        argon2::Algorithm::Argon2id, // Argon2id variant (more secure)
+        argon2::Version::V0x13,      // Latest version
+        argon2::Params::new(
+            65536,    // Memory cost (64MB)
+            2,        // Iterations
+            1,        // Parallelism
+            Some(32), // Output size (32 bytes)
+        )
+        .map_err(|e| BackendError::Internal(format!("Invalid Argon2 parameters: {}", e)))?,
+    );
 
     // Hash password to PHC string ($argon2id$v=19$...) format
     let password_hash = argon2
@@ -111,7 +122,18 @@ fn verify_password(hash: &str, password: &str) -> Result<bool> {
     let parsed_hash = PasswordHash::new(hash)
         .map_err(|e| BackendError::Internal(format!("Invalid password hash format: {}", e)))?;
 
-    let argon2 = Argon2::default(); // Use the same variant for verification
+    // Configure Argon2 with the same parameters used for hashing
+    let argon2 = Argon2::new(
+        argon2::Algorithm::Argon2id, // Same algorithm
+        argon2::Version::V0x13,      // Same version
+        argon2::Params::new(
+            65536,    // Same memory cost
+            2,        // Same iterations
+            1,        // Same parallelism
+            Some(32), // Same output size
+        )
+        .map_err(|e| BackendError::Internal(format!("Invalid Argon2 parameters: {}", e)))?,
+    );
 
     // Verify password against hash
     match argon2.verify_password(password.as_bytes(), &parsed_hash) {

@@ -18,19 +18,21 @@ lazy_static! {
 
 // Helper function to get or initialize the resolver
 async fn get_resolver() -> Result<TokioAsyncResolver> {
-    let mut resolver_guard = DNS_RESOLVER.lock().map_err(|e| anyhow::anyhow!("Failed to acquire DNS resolver lock: {}", e))?;
-    
+    let mut resolver_guard = DNS_RESOLVER
+        .lock()
+        .map_err(|e| anyhow::anyhow!("Failed to acquire DNS resolver lock: {}", e))?;
+
     if resolver_guard.is_none() {
         // Initialize the resolver if not already done
         tracing::debug!("Initializing DNS resolver");
-        
+
         // This isn't actually fallible in the same way as other Result-returning functions
         *resolver_guard = Some(TokioAsyncResolver::tokio(
             ResolverConfig::default(),
             ResolverOpts::default(),
         ));
     }
-    
+
     // Clone the resolver for the caller
     Ok(resolver_guard.as_ref().unwrap().clone())
 }

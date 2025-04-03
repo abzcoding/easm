@@ -10,6 +10,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use shared::config::Config;
+use uuid::Uuid;
 
 use crate::{errors::ApiError, state::AppState};
 
@@ -20,6 +21,9 @@ struct Claims {
     pub org: Option<String>, // Organization ID
     pub exp: usize,          // Expiration time
     pub iat: usize,          // Issued at
+    pub iss: String,         // Issuer
+    pub aud: String,         // Audience
+    pub jti: String,         // JWT ID (for token revocation)
 }
 
 /// Authentication middleware
@@ -48,11 +52,16 @@ pub async fn auth_middleware(
     // Extract the token
     let token = &auth_header["Bearer ".len()..];
 
+    // Set up validation
+    let mut validation = Validation::default();
+    validation.set_issuer(&["easm-api"]);
+    validation.set_audience(&["easm-client"]);
+
     // Validate token
     let _claims = match decode::<Claims>(
         token,
         &DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
-        &Validation::default(),
+        &validation,
     ) {
         Ok(claims) => claims.claims,
         Err(e) => match e.kind() {
@@ -74,9 +83,9 @@ pub fn generate_token(
     organization_id: Option<&str>,
     config: &Config,
 ) -> Result<String, ApiError> {
-    // Calculate expiration time (24 hours from now)
+    // Use the configured JWT expiration time rather than hardcoded
     let expiration = Utc::now()
-        .checked_add_signed(Duration::hours(24))
+        .checked_add_signed(Duration::seconds(config.jwt_expiration))
         .expect("valid timestamp")
         .timestamp() as usize;
 
@@ -90,6 +99,9 @@ pub fn generate_token(
         org: organization_id.map(|id| id.to_string()),
         exp: expiration,
         iat: issued_at,
+        iss: "easm-api".to_string(),
+        aud: "easm-client".to_string(),
+        jti: Uuid::new_v4().to_string(), // Unique token ID
     };
 
     // Encode the token
