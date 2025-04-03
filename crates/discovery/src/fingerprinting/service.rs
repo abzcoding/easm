@@ -233,6 +233,12 @@ impl ServiceFingerprinter {
 
         // Check each signature for this port
         for signature in signatures {
+            // Add protocol information to metadata
+            result.metadata.insert(
+                format!("port:{}_protocol", port),
+                signature.protocol.clone(),
+            );
+
             // If we have a banner, check for matches
             if let Some(banner_match) = &signature.banner_match {
                 if !banner.is_empty()

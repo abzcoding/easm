@@ -10,7 +10,7 @@ pub fn AssetTable(
     #[prop(into, optional)] on_asset_click: Option<Callback<(Asset, MouseEvent)>>,
 ) -> impl IntoView {
     // Define headers
-    let headers = vec![
+    let headers = [
         "Name".to_string(),
         "Type".to_string(),
         "Status".to_string(),

@@ -1,5 +1,9 @@
 use leptos::prelude::*;
+use leptos::*;
 use web_sys::MouseEvent;
+
+// Define a type alias for the row mapper
+pub type RowMapper<T> = Box<dyn Fn(&T) -> Vec<String> + Send + Sync>;
 
 /// A reusable data table component
 #[component]
@@ -12,7 +16,7 @@ pub fn DataTable<T: Clone + Send + Sync + 'static>(
     data: Vec<T>,
     /// Function to map data items to row cells
     #[prop(into)]
-    row_mapper: Box<dyn Fn(&T) -> Vec<String> + Send + Sync>,
+    row_mapper: RowMapper<T>,
     /// Optional function for handling row clicks
     #[prop(into, optional)]
     on_row_click: Option<Callback<(T, MouseEvent)>>,
@@ -36,7 +40,7 @@ pub fn DataTable<T: Clone + Send + Sync + 'static>(
     let table_class = move || format!("data-table {}", class.clone().unwrap_or_default());
 
     // Clone header values for closures
-    let header0 = headers.get(0).cloned().unwrap_or_default();
+    let header0 = headers.first().cloned().unwrap_or_default();
     let header1 = headers.get(1).cloned().unwrap_or_default();
     let header2 = headers.get(2).cloned().unwrap_or_default();
     let header3 = headers.get(3).cloned().unwrap_or_default();
@@ -93,7 +97,7 @@ pub fn DataTable<T: Clone + Send + Sync + 'static>(
                                         on:click={click_handler}
                                         class:clickable={on_row_click.is_some()}
                                     >
-                                        <td>{row_cells.get(0).cloned().unwrap_or_default()}</td>
+                                        <td>{row_cells.first().cloned().unwrap_or_default()}</td>
                                         <td>{row_cells.get(1).cloned().unwrap_or_default()}</td>
                                         <td>{row_cells.get(2).cloned().unwrap_or_default()}</td>
                                         <td>{row_cells.get(3).cloned().unwrap_or_default()}</td>

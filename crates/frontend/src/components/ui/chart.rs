@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -15,13 +16,13 @@ pub enum ChartType {
     Doughnut,
 }
 
-impl ToString for ChartType {
-    fn to_string(&self) -> String {
+impl Display for ChartType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            ChartType::Bar => "bar".to_string(),
-            ChartType::Line => "line".to_string(),
-            ChartType::Pie => "pie".to_string(),
-            ChartType::Doughnut => "doughnut".to_string(),
+            ChartType::Bar => write!(f, "bar"),
+            ChartType::Line => write!(f, "line"),
+            ChartType::Pie => write!(f, "pie"),
+            ChartType::Doughnut => write!(f, "doughnut"),
         }
     }
 }
@@ -70,7 +71,7 @@ pub fn Chart(
                 }}
             }}
         }}"#,
-        chart_type.to_string(),
+        chart_type,
         data.labels
             .iter()
             .map(|l| format!("\"{}\"", l))
@@ -121,7 +122,7 @@ pub fn Chart(
             })
             .collect::<Vec<_>>()
             .join(","),
-        show_legend.to_string(),
+        show_legend,
         title
     );
 

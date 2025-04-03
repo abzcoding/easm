@@ -118,6 +118,14 @@ impl WebFingerprinter {
                 pattern: "angular".to_string(),
                 version_regex: Some(r"angular@(\d+[\.\d]*)".to_string()),
             },
+            // Add a Script detection example
+            TechSignature {
+                name: "jQuery".to_string(),
+                category: "JavaScript Library".to_string(),
+                method: DetectionMethod::Script,
+                pattern: "jquery".to_string(),
+                version_regex: Some(r"jQuery v(\d+[\.\d]*)".to_string()),
+            },
         ];
         signatures.insert("js_frameworks".to_string(), js_frameworks);
 
@@ -146,6 +154,44 @@ impl WebFingerprinter {
             },
         ];
         signatures.insert("cms_platforms".to_string(), cms_platforms);
+
+        // URL pattern-based detections
+        let url_patterns = vec![
+            TechSignature {
+                name: "WordPress".to_string(),
+                category: "CMS".to_string(),
+                method: DetectionMethod::Url,
+                pattern: "wp-content".to_string(),
+                version_regex: None,
+            },
+            TechSignature {
+                name: "Drupal".to_string(),
+                category: "CMS".to_string(),
+                method: DetectionMethod::Url,
+                pattern: "sites/default/files".to_string(),
+                version_regex: None,
+            },
+        ];
+        signatures.insert("url_patterns".to_string(), url_patterns);
+
+        // Cookie-based detections
+        let cookie_patterns = vec![
+            TechSignature {
+                name: "PHP Session".to_string(),
+                category: "Web Technology".to_string(),
+                method: DetectionMethod::Cookie("PHPSESSID".to_string()),
+                pattern: ".".to_string(), // Match any value
+                version_regex: None,
+            },
+            TechSignature {
+                name: "ASP.NET".to_string(),
+                category: "Web Technology".to_string(),
+                method: DetectionMethod::Cookie("ASP.NET_SessionId".to_string()),
+                pattern: ".".to_string(), // Match any value
+                version_regex: None,
+            },
+        ];
+        signatures.insert("cookie_patterns".to_string(), cookie_patterns);
 
         signatures
     }
@@ -206,19 +252,129 @@ impl WebFingerprinter {
         // Match against content-based signatures
         for signatures in self.signatures.values() {
             for signature in signatures {
-                if let DetectionMethod::Content = signature.method {
-                    if content.contains(&signature.pattern) {
+                match &signature.method {
+                    DetectionMethod::Content => {
+                        if content.contains(&signature.pattern) {
+                            let version = signature
+                                .version_regex
+                                .as_ref()
+                                .and_then(|re| self.extract_version(content, re));
+
+                            findings.push(TechnologyFinding {
+                                asset_id,
+                                name: signature.name.clone(),
+                                version,
+                                category: Some(signature.category.clone()),
+                                evidence: format!("Content match for: {}", signature.pattern),
+                            });
+                        }
+                    }
+                    DetectionMethod::Script => {
+                        // Look for script tags and JavaScript patterns
+                        if let Some(script_content) = self.extract_scripts(content) {
+                            if script_content.contains(&signature.pattern) {
+                                let version = signature
+                                    .version_regex
+                                    .as_ref()
+                                    .and_then(|re| self.extract_version(&script_content, re));
+
+                                findings.push(TechnologyFinding {
+                                    asset_id,
+                                    name: signature.name.clone(),
+                                    version,
+                                    category: Some(signature.category.clone()),
+                                    evidence: format!("Script match for: {}", signature.pattern),
+                                });
+                            }
+                        }
+                    }
+                    _ => {} // Other methods handled elsewhere
+                }
+            }
+        }
+
+        findings
+    }
+
+    /// Extract script content from HTML
+    fn extract_scripts(&self, content: &str) -> Option<String> {
+        let mut scripts = String::new();
+        let re = regex::Regex::new(r"<script[^>]*>(.*?)</script>").ok()?;
+
+        for cap in re.captures_iter(content) {
+            if let Some(script) = cap.get(1) {
+                scripts.push_str(script.as_str());
+                scripts.push('\n');
+            }
+        }
+
+        if scripts.is_empty() {
+            None
+        } else {
+            Some(scripts)
+        }
+    }
+
+    /// Process cookies to detect technologies
+    fn process_cookies(&self, cookies: &str, asset_id: ID) -> Vec<TechnologyFinding> {
+        let mut findings = Vec::new();
+
+        // Match against cookie-based signatures
+        for signatures in self.signatures.values() {
+            for signature in signatures {
+                if let DetectionMethod::Cookie(cookie_name) = &signature.method {
+                    // Simple cookie parsing
+                    for cookie in cookies.split(';') {
+                        let parts: Vec<&str> = cookie.splitn(2, '=').collect();
+                        if parts.len() == 2 {
+                            let name = parts[0].trim();
+                            let value = parts[1].trim();
+
+                            if name.eq_ignore_ascii_case(cookie_name)
+                                && value.contains(&signature.pattern)
+                            {
+                                let version = signature
+                                    .version_regex
+                                    .as_ref()
+                                    .and_then(|re| self.extract_version(value, re));
+
+                                findings.push(TechnologyFinding {
+                                    asset_id,
+                                    name: signature.name.clone(),
+                                    version,
+                                    category: Some(signature.category.clone()),
+                                    evidence: format!("Cookie {}: {}", name, value),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        findings
+    }
+
+    /// Process URL patterns to detect technologies
+    fn process_url(&self, url: &str, asset_id: ID) -> Vec<TechnologyFinding> {
+        let mut findings = Vec::new();
+
+        // Match against URL-based signatures
+        for signatures in self.signatures.values() {
+            for signature in signatures {
+                if let DetectionMethod::Url = signature.method {
+                    if url.contains(&signature.pattern) {
                         let version = signature
                             .version_regex
                             .as_ref()
-                            .and_then(|re| self.extract_version(content, re));
+                            .and_then(|re| self.extract_version(url, re));
 
                         findings.push(TechnologyFinding {
                             asset_id,
                             name: signature.name.clone(),
                             version,
                             category: Some(signature.category.clone()),
-                            evidence: format!("Content match for: {}", signature.pattern),
+                            evidence: format!("URL match for: {}", signature.pattern),
                         });
                     }
                 }
@@ -245,19 +401,36 @@ impl Fingerprinter for WebFingerprinter {
                 let status = response.status();
                 let headers = response.headers().clone();
 
+                // Store URL for URL pattern matching
+                result.metadata.insert("url".to_string(), url.clone());
+
                 // Process headers to find technologies
                 let header_findings = self.process_headers(&headers, asset_id).await;
                 result.technologies.extend(header_findings);
 
-                // Get and process content if it's HTML
-                if let Some(content_type) = headers.get("content-type") {
-                    if let Ok(content_type_str) = content_type.to_str() {
-                        if content_type_str.contains("text/html") {
-                            if let Ok(content) = response.text().await {
-                                let content_findings = self.process_content(&content, asset_id);
-                                result.technologies.extend(content_findings);
-                            }
-                        }
+                // Check for cookies
+                if let Some(cookie_header) = headers.get("set-cookie") {
+                    if let Ok(cookie_str) = cookie_header.to_str() {
+                        let cookie_findings = self.process_cookies(cookie_str, asset_id);
+                        result.technologies.extend(cookie_findings);
+                    }
+                }
+
+                // Process URL patterns
+                let url_findings = self.process_url(&url, asset_id);
+                result.technologies.extend(url_findings);
+
+                // If we have a successful response, get the content and process it
+                if status.is_success() {
+                    if let Ok(content) = response.text().await {
+                        // Store content length
+                        result
+                            .metadata
+                            .insert("content_length".to_string(), content.len().to_string());
+
+                        // Process content to find technologies
+                        let content_findings = self.process_content(&content, asset_id);
+                        result.technologies.extend(content_findings);
                     }
                 }
 

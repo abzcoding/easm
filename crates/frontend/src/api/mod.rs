@@ -24,7 +24,8 @@ pub enum ApiError {
     DeserializationError(String),
 }
 
-/// API client for EASM backend
+/// API client for communicating with the backend
+#[derive(Debug, Clone)]
 pub struct ApiClient {
     base_url: String,
     token: Option<String>,
