@@ -15,12 +15,7 @@ dist = "dist"
 public_url = "/"
 
 [watch]
-ignore = [
-    "dist",
-    ".git",
-    ".gitignore",
-    "Cargo.lock",
-]
+watch = ["src", "style", "index.html"]
 
 [serve]
 port = 8080

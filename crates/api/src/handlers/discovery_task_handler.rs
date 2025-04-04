@@ -3,8 +3,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use backend::models::{Asset, DiscoveryJob};
-use discovery::tasks::{DiscoveryTask, DiscoveryTaskType, NucleiTaskParams};
+use backend::models::DiscoveryJob;
+use discovery::tasks::{DiscoveryTaskType, NucleiTaskParams};
 use serde::{Deserialize, Serialize};
 use shared::types::{JobStatus, JobType, ID};
 use std::sync::Arc;

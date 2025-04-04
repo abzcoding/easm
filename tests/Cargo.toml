@@ -10,7 +10,9 @@ backend = { path = "../crates/backend" }
 infrastructure = { path = "../crates/infrastructure" }
 discovery = { path = "../crates/discovery" }
 shared = { path = "../crates/shared" }
+criterion = { workspace = true }
 
+[dependencies]
 # Add test dependencies
 tokio = { workspace = true }
 uuid = { workspace = true }
@@ -18,6 +20,10 @@ sqlx = { workspace = true }
 dotenvy = { workspace = true }
 hyper = { workspace = true }
 tower = { workspace = true }
+serde = { workspace = true }
+futures = { workspace = true }
+fantoccini = { workspace = true }
+reqwest = { workspace = true }
 serde_json = { workspace = true }
 axum = { workspace = true }
 http-body-util = { workspace = true }
@@ -25,6 +31,7 @@ tower-service = { workspace = true }
 chrono = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
+once_cell = "1.21.3"
 
 [[test]]
 name = "database_tests"
@@ -45,3 +52,11 @@ path = "discovery_integration_tests.rs"
 [[test]]
 name = "task_integration_tests"
 path = "task_integration_tests.rs"
+
+[[test]]
+name = "api_integration_test"
+path = "api_integration_test.rs"
+
+[[test]]
+name = "frontend_integration_test"
+path = "frontend_integration_test.rs"

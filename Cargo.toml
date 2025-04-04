@@ -110,6 +110,8 @@ web-sys = { version = "0.3", features = [
 console_error_panic_hook = "0.1.7"
 log = "0.4"
 console_log = "1.0.0"
+fantoccini = "0.21"
+criterion = "0.5"
 
 # dev
 serial_test = "3.2"

@@ -9,7 +9,7 @@ use std::net::SocketAddr;
 
 use shared::{config::Config, errors::Result};
 use tower_http::trace::{self, TraceLayer};
-use tracing::{info, warn, Level};
+use tracing::{info, Level};
 
 use crate::routes::create_router;
 use crate::state::AppState;
