@@ -36,7 +36,7 @@ In a separate terminal:
 
 ```sh
 cd crates/frontend
-trunk serve --port 8080
+RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve --port 8080
 ```
 
 ### WebDriver for Frontend Tests

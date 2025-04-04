@@ -4,6 +4,7 @@ use uuid::Uuid;
 /// Common error types used across the application
 #[derive(Error, Debug)]
 pub enum AppError {
+    #[cfg(feature = "backend")]
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
@@ -154,8 +155,14 @@ pub enum ExternalServiceError {
 pub type Result<T> = std::result::Result<T, AppError>;
 
 impl AppError {
+    #[cfg(feature = "backend")]
     pub fn database<S: AsRef<str>>(_message: S) -> Self {
         AppError::Database(sqlx::Error::RowNotFound)
+    }
+
+    #[cfg(not(feature = "backend"))]
+    pub fn database<S: AsRef<str>>(message: S) -> Self {
+        AppError::Internal(format!("Database error: {}", message.as_ref()))
     }
 
     pub fn validation<S: AsRef<str>>(message: S) -> Self {
@@ -201,12 +208,14 @@ impl From<serde_json::Error> for AppError {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<jsonwebtoken::errors::Error> for AppError {
     fn from(err: jsonwebtoken::errors::Error) -> Self {
         AppError::authentication(format!("JWT error: {}", err))
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<redis::RedisError> for AppError {
     fn from(err: redis::RedisError) -> Self {
         AppError::external_service(format!("Redis error: {:?}", err))

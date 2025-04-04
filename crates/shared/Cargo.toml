@@ -12,11 +12,16 @@ path = "src/lib.rs"
 
 [dependencies]
 chrono = { workspace = true }
-dotenvy = { workspace = true }
-jsonwebtoken = { workspace = true }
-redis = { workspace = true }
+dotenvy = { workspace = true, optional = true }
+jsonwebtoken = { workspace = true, optional = true }
+redis = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
+sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
+
+[features]
+default = ["backend"]
+backend = ["dotenvy", "jsonwebtoken", "redis", "sqlx"]
+frontend = []

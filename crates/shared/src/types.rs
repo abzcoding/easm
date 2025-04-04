@@ -1,9 +1,14 @@
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "backend")]
 use sqlx::Type;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum AssetStatus {
     Active,
@@ -11,8 +16,12 @@ pub enum AssetStatus {
     Archived,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum AssetType {
     Domain,
@@ -23,10 +32,12 @@ pub enum AssetType {
     CloudResource,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord, Hash,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
 )]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Severity {
     Info,
@@ -36,8 +47,12 @@ pub enum Severity {
     Critical,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum VulnerabilityStatus {
     Open,
@@ -46,16 +61,24 @@ pub enum VulnerabilityStatus {
     FalsePositive,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Protocol {
     TCP,
     UDP,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PortStatus {
     Open,
@@ -63,8 +86,12 @@ pub enum PortStatus {
     Filtered,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum JobType {
     DnsEnum,
@@ -83,8 +110,12 @@ pub enum DiscoveryMethod {
     WebCrawl,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum JobStatus {
     Pending,
@@ -106,8 +137,12 @@ impl std::fmt::Display for JobStatus {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, PartialOrd, Ord)]
-#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord)]
+#[cfg_attr(feature = "backend", derive(Type))]
+#[cfg_attr(
+    feature = "backend",
+    sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")
+)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum UserRole {
     Admin,    // Full access

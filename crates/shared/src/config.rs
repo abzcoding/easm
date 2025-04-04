@@ -1,5 +1,7 @@
+#[cfg(feature = "backend")]
 use dotenvy::dotenv;
 use serde::Deserialize;
+#[cfg(feature = "backend")]
 use std::env;
 use std::net::IpAddr;
 
@@ -24,6 +26,7 @@ pub enum Environment {
     Test,
 }
 
+#[cfg(feature = "backend")]
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
         let _ = dotenv();

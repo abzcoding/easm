@@ -11,7 +11,7 @@ name = "frontend"
 path = "src/main.rs"
 
 [dependencies]
-shared = { path = "../shared" }
+shared = { path = "../shared", default-features = false, features = ["frontend"] }
 leptos = { workspace = true }
 leptos_meta = { workspace = true }
 leptos_router = { workspace = true }
@@ -23,7 +23,19 @@ log = { workspace = true }
 gloo = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true } 
-rand = { workspace = true }
-getrandom = { workspace = true }
 console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
+
+# Correctly configured dependencies for WASM compatibility
+rand = { workspace = true, default-features = false }
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# WASM-specific dependencies
+uuid = { workspace = true, features = ["js"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+
+[features]
+default = []
