@@ -4,7 +4,6 @@ command = "tailwindcss"
 command_arguments = [
   "-i", "style/main.css", 
   "-o", "style/output.css",
-  "--watch",
 ]
 
 [build]

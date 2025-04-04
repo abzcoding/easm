@@ -1,12 +1,5 @@
 use leptos::prelude::*;
 use std::fmt::{Display, Formatter, Result as FmtResult};
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = window)]
-    fn btoa(s: &str) -> String;
-}
 
 #[derive(Clone, Debug)]
 pub enum ChartType {
@@ -50,95 +43,35 @@ pub fn Chart(
     #[prop(default = "100%".to_string())] width: String,
     #[prop(default = false)] show_legend: bool,
 ) -> impl IntoView {
-    // Encode chart data to a data URL that could be used with a JS charting library
-    let chart_config = format!(
-        r#"{{
-            "type": "{}",
-            "data": {{
-                "labels": [{}],
-                "datasets": [{}]
-            }},
-            "options": {{
-                "responsive": true,
-                "plugins": {{
-                    "legend": {{
-                        "display": {}
-                    }},
-                    "title": {{
-                        "display": true,
-                        "text": "{}"
-                    }}
-                }}
-            }}
-        }}"#,
-        chart_type,
-        data.labels
-            .iter()
-            .map(|l| format!("\"{}\"", l))
-            .collect::<Vec<_>>()
-            .join(","),
-        data.datasets
-            .iter()
-            .map(|d| {
-                let bg_colors = match &d.background_colors {
-                    Some(colors) => format!(
-                        "[{}]",
-                        colors
-                            .iter()
-                            .map(|c| format!("\"{}\"", c))
-                            .collect::<Vec<_>>()
-                            .join(",")
-                    ),
-                    None => "\"rgba(75, 192, 192, 0.2)\"".to_string(),
-                };
-                let border_colors = match &d.border_colors {
-                    Some(colors) => format!(
-                        "[{}]",
-                        colors
-                            .iter()
-                            .map(|c| format!("\"{}\"", c))
-                            .collect::<Vec<_>>()
-                            .join(",")
-                    ),
-                    None => "\"rgba(75, 192, 192, 1)\"".to_string(),
-                };
-                format!(
-                    r#"{{
-                        "label": "{}",
-                        "data": [{}],
-                        "backgroundColor": {},
-                        "borderColor": {},
-                        "borderWidth": 1
-                    }}"#,
-                    d.label,
-                    d.data
-                        .iter()
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join(","),
-                    bg_colors,
-                    border_colors
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(","),
-        show_legend,
-        title
-    );
+    // Extremely simple chart implementation
+    let style = format!("width: {}; height: {}px; background-color: #f8f9fa; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);", width, height);
+    let chart_type_str = chart_type.to_string();
 
-    // Construct a URL for the chart (in a real implementation, we'd render with a JS library)
-    let encoded_config = btoa(&chart_config);
-    let chart_url = format!("https://quickchart.io/chart?c={}", encoded_config);
+    // Format data
+    let formatted_data = data
+        .labels
+        .iter()
+        .enumerate()
+        .filter_map(|(i, label)| {
+            if i < data.datasets[0].data.len() {
+                Some(format!("{}: {}", label, data.datasets[0].data[i]))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
 
     view! {
-        <div class="chart-container" style={format!("width: {}; height: {}px;", width, height)}>
-            <img
-                src={chart_url}
-                alt={format!("{} chart", title)}
-                class="chart-image"
-                width={width.clone()}
-                height={height.to_string()}
-            />
+        <div class="chart-container" style={style}>
+            <h3 class="chart-title">{title}</h3>
+            <p class="chart-type">"Type: " {chart_type_str}</p>
+            <p class="chart-data">"Data: " {formatted_data}</p>
+
+            // Show legend unconditionally but don't display content if show_legend is false
+            <p class="chart-legend" style={if show_legend { "" } else { "display: none;" }}>
+                "Legend: " {data.datasets[0].label.clone()}
+            </p>
         </div>
     }
 }
