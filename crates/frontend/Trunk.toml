@@ -1,13 +1,11 @@
-# [[hooks]]
-# stage = "pre_build"
-# command = "npx"
-# command_arguments = [
-#   "tailwindcss", 
-#   "build", 
-#   "-i", "style/main.css", 
-#   "-o", "style/output.css",
-#   "--watch",
-# ]
+[[hooks]]
+stage = "pre_build"
+command = "tailwindcss"
+command_arguments = [
+  "-i", "style/main.css", 
+  "-o", "style/output.css",
+  "--watch",
+]
 
 [build]
 target = "index.html"
