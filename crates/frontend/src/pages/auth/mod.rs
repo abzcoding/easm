@@ -1,17 +1,31 @@
-use crate::api::ApiClient;
+use crate::api::{ApiClient, ApiError};
 use crate::pages::auth::hooks::use_navigate;
 use crate::utils::{clear_auth_token, get_auth_token, save_auth_token};
 use leptos::prelude::*;
 use leptos_router::*;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
+
+#[derive(Serialize, Debug)]
+struct LoginRequest {
+    email: String,
+    password: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct AuthResponse {
+    token: String,
+}
 
 #[component]
 pub fn LoginPage() -> impl IntoView {
-    let (username, set_username) = signal(String::new());
+    let (email, set_email) = signal(String::new());
     let (password, set_password) = signal(String::new());
     let (error, set_error) = signal(String::new());
+    let (loading, set_loading) = signal(false);
     let navigate = use_navigate();
-    let api_client = ApiClient::new("http://localhost:8080/api".to_string());
+    let api_client = ApiClient::new("http://localhost:3000/api".to_string());
 
     // Clone values for the first closure
     let navigate_clone1 = navigate.clone();
@@ -26,7 +40,7 @@ pub fn LoginPage() -> impl IntoView {
             client.set_token(token);
 
             // Navigate to dashboard
-            navigate_clone1("/", NavigateOptions::default());
+            navigate_clone1("/dashboard", NavigateOptions::default());
         }
     };
 
@@ -35,52 +49,78 @@ pub fn LoginPage() -> impl IntoView {
         check_existing_token();
     });
 
-    // Clone values for the second closure
-    let navigate_clone2 = navigate.clone();
-    let api_client_clone2 = api_client.clone();
-
     // Create a stable function that can be called multiple times (FnMut)
-    let handle_submit = Action::new(move |_: &()| {
-        let username_val = username.get();
+    let handle_submit = move |_| {
+        let email_val = email.get();
         let password_val = password.get();
-        let nav = navigate_clone2.clone();
-        let mut client = api_client_clone2.clone();
+        let navigate = navigate.clone();
+        let client = api_client.clone();
+        let set_error = set_error.clone();
+        let set_loading = set_loading.clone();
 
-        async move {
-            // Basic validation
-            if username_val.is_empty() || password_val.is_empty() {
-                set_error("Username and password are required".to_string());
-                return false;
-            }
+        // Basic validation
+        if email_val.is_empty() || password_val.is_empty() {
+            set_error("Email and password are required".to_string());
+            return;
+        }
 
-            // Clear any previous errors
-            set_error(String::new());
+        // Clear any previous errors
+        set_error(String::new());
+        set_loading(true);
 
-            // TODO: In a real app, make API call to login
-            // For now, just simulate successful login with a fake token
-            let fake_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJ1c2VybmFtZSI6InRlc3R1c2VyIn0.aBcDeFgHiJkLmNoPqRsTuVwXyZ";
+        // Create login request
+        let login_request = LoginRequest {
+            email: email_val,
+            password: password_val,
+        };
 
-            // Save token
-            match save_auth_token(fake_token) {
-                Ok(_) => {
-                    // Set token in API client
-                    client.set_token(fake_token.to_string());
+        // Use spawn_local for WASM-safe async handling
+        spawn_local(async move {
+            // Make API call to login
+            match client
+                .post::<AuthResponse, _>("/auth/login", &login_request)
+                .await
+            {
+                Ok(response) => {
+                    // Save token
+                    match save_auth_token(&response.token) {
+                        Ok(_) => {
+                            // Set token in API client
+                            let mut client_with_token = client.clone();
+                            client_with_token.set_token(response.token);
 
-                    // Navigate to dashboard after login
-                    nav("/", NavigateOptions::default());
-                    true
+                            // Navigate to dashboard after login
+                            navigate("/dashboard", NavigateOptions::default());
+                            set_loading(false);
+                        }
+                        Err(e) => {
+                            set_error(format!("Failed to save token: {}", e));
+                            set_loading(false);
+                        }
+                    }
                 }
                 Err(e) => {
-                    set_error(format!("Failed to save token: {}", e));
-                    false
+                    // Handle different API errors
+                    let error_message = match e {
+                        ApiError::AuthError(msg) => format!("Authentication error: {}", msg),
+                        ApiError::BadRequest(msg) => format!("Bad request: {}", msg),
+                        ApiError::NotFound => "Login service not available".to_string(),
+                        ApiError::ServerError(msg) => format!("Server error: {}", msg),
+                        ApiError::NetworkError(msg) => format!("Network error: {}", msg),
+                        ApiError::DeserializationError(msg) => {
+                            format!("Could not process response: {}", msg)
+                        }
+                    };
+                    set_error(error_message);
+                    set_loading(false);
                 }
             }
-        }
-    });
+        });
+    };
 
     let on_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
-        handle_submit.dispatch(());
+        handle_submit(());
     };
 
     let logout = move |_| {
@@ -101,16 +141,16 @@ pub fn LoginPage() -> impl IntoView {
 
                 <form on:submit=on_submit>
                     <div style="margin-bottom: 1rem;">
-                        <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #555;">"Username"</label>
+                        <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #555;">"Email"</label>
                         <input
-                            type="text"
-                            id="username"
-                            name="username"
+                            type="email"
+                            id="email"
+                            name="email"
                             style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
-                            placeholder="Enter your username"
+                            placeholder="Enter your email"
                             on:input=move |ev| {
                                 let input = event_target::<HtmlInputElement>(&ev);
-                                set_username(input.value());
+                                set_email(input.value());
                             }
                         />
                     </div>
@@ -131,8 +171,14 @@ pub fn LoginPage() -> impl IntoView {
                     </div>
 
                     <div style="margin-bottom: 0.75rem;">
-                        <button type="submit" style="width: 100%; padding: 0.85rem; border: none; border-radius: 4px; background-color: #007bff; color: white; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">
-                            "Login"
+                        <button type="submit"
+                            style=move || format!("width: 100%; padding: 0.85rem; border: none; border-radius: 4px; background-color: #007bff; color: white; font-size: 1rem; cursor: {}; transition: background-color 0.2s ease; {}",
+                                if loading.get() { "not-allowed" } else { "pointer" },
+                                if loading.get() { "opacity: 0.7;" } else { "" }
+                            )
+                            disabled=loading
+                        >
+                            {move || if loading.get() { "Logging in..." } else { "Login" }}
                         </button>
                     </div>
 

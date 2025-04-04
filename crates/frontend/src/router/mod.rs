@@ -1,10 +1,10 @@
-use leptos::prelude::{provide_context, Effect, ElementChild};
+use leptos::prelude::{provide_context, Children, Effect, ElementChild};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::{
-    components::{Route, Router, Routes},
+    components::{Route, Router, Routes, A},
     location::RequestUrl,
-    path,
+    path, NavigateOptions,
 };
 use wasm_bindgen::JsValue;
 
@@ -13,6 +13,7 @@ use crate::pages::{
     assets::AssetsPage, auth::LoginPage, dashboard::DashboardPage, discovery::DiscoveryPage,
     not_found::NotFoundPage, technologies::TechnologiesPage, vulnerabilities::VulnerabilitiesPage,
 };
+use crate::utils::get_auth_token;
 
 // Basic App Router
 #[component]
@@ -34,14 +35,32 @@ pub fn AppRouter() -> impl IntoView {
             <Routes fallback>
                 <Route path=path!("/") view=RedirectToLogin/>
                 <Route path=path!("/login") view=LoginView/>
-                <Route path=path!("/dashboard") view=DashboardView/>
-                <Route path=path!("/app/assets") view=AssetsView/>
-                <Route path=path!("/app/technologies") view=TechnologiesView/>
-                <Route path=path!("/app/vulnerabilities") view=VulnerabilityView/>
-                <Route path=path!("/app/discovery") view=DiscoveryView/>
+                // Protected routes
+                <Route path=path!("/dashboard") view=move || view! { <RequireAuth><DashboardPage/></RequireAuth> }/>
+                <Route path=path!("/app/assets") view=move || view! { <RequireAuth><AppLayout><AssetsPage/></AppLayout></RequireAuth> }/>
+                <Route path=path!("/app/technologies") view=move || view! { <RequireAuth><AppLayout><TechnologiesPage/></AppLayout></RequireAuth> }/>
+                <Route path=path!("/app/vulnerabilities") view=move || view! { <RequireAuth><AppLayout><VulnerabilitiesPage/></AppLayout></RequireAuth> }/>
+                <Route path=path!("/app/discovery") view=move || view! { <RequireAuth><AppLayout><DiscoveryPage/></AppLayout></RequireAuth> }/>
             </Routes>
         </Router>
     }
+}
+
+// Authentication wrapper component
+#[component]
+fn RequireAuth(children: Children) -> impl IntoView {
+    // Check for authentication on component mount
+    let _effect = Effect::new(move |_| {
+        // If no auth token exists, redirect to login
+        if get_auth_token().is_none() {
+            // Use window.location directly as a simple solution
+            let window = web_sys::window().expect("no global window exists");
+            let _ = window.location().replace("/login");
+        }
+    });
+
+    // Render children if authenticated
+    children()
 }
 
 // Route components
@@ -58,29 +77,4 @@ fn RedirectToLogin() -> impl IntoView {
 #[component]
 fn LoginView() -> impl IntoView {
     view! { <AuthLayout><LoginPage/></AuthLayout> }
-}
-
-#[component]
-fn DashboardView() -> impl IntoView {
-    view! { <DashboardPage/> }
-}
-
-#[component]
-fn AssetsView() -> impl IntoView {
-    view! { <AppLayout><AssetsPage/></AppLayout> }
-}
-
-#[component]
-fn TechnologiesView() -> impl IntoView {
-    view! { <AppLayout><TechnologiesPage/></AppLayout> }
-}
-
-#[component]
-fn VulnerabilityView() -> impl IntoView {
-    view! { <AppLayout><VulnerabilitiesPage/></AppLayout> }
-}
-
-#[component]
-fn DiscoveryView() -> impl IntoView {
-    view! { <AppLayout><DiscoveryPage/></AppLayout> }
 }
