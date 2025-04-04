@@ -1,10 +1,12 @@
+use leptos::prelude::{provide_context, Effect, ElementChild};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::{
-    components::{Outlet, ParentRoute, Route, Router, Routes},
+    components::{Route, Router, Routes},
+    location::RequestUrl,
     path,
 };
-use leptos::prelude::Effect;
+use wasm_bindgen::JsValue;
 
 use crate::components::layout::{AppLayout, AuthLayout};
 use crate::pages::{
@@ -12,104 +14,73 @@ use crate::pages::{
     not_found::NotFoundPage, technologies::TechnologiesPage, vulnerabilities::VulnerabilitiesPage,
 };
 
+// Basic App Router
 #[component]
-fn LoginView() -> impl IntoView {
+pub fn AppRouter() -> impl IntoView {
+    let fallback = move || view! { <NotFoundPage/> };
+
+    // Get current URL
+    let window = web_sys::window().expect("no global window exists");
+    let location = window.location();
+    let path = location.pathname().expect("no pathname exists");
+
+    // Create and provide RequestUrl to router
+    provide_context(RequestUrl::new(&path));
+    log::info!("Set RequestUrl to path: {}", path);
+
     view! {
-        <AuthLayout>
-            <LoginPage/>
-        </AuthLayout>
+        <Stylesheet id="main" href="/style/output.css"/>
+        <Router base="/">
+            <Routes fallback>
+                <Route path=path!("/") view=RedirectToLogin/>
+                <Route path=path!("/login") view=LoginView/>
+                <Route path=path!("/dashboard") view=DashboardView/>
+                <Route path=path!("/app/assets") view=AssetsView/>
+                <Route path=path!("/app/technologies") view=TechnologiesView/>
+                <Route path=path!("/app/vulnerabilities") view=VulnerabilityView/>
+                <Route path=path!("/app/discovery") view=DiscoveryView/>
+            </Routes>
+        </Router>
     }
 }
 
-#[component]
-fn MainLayout() -> impl IntoView {
-    view! {
-        <AppLayout>
-            <Outlet/>
-        </AppLayout>
-    }
-}
-
-#[component]
-fn NotFoundView() -> impl IntoView {
-    view! {
-        <NotFoundPage/>
-    }
-}
-
-#[component]
-fn DashboardView() -> impl IntoView {
-    view! {
-        <DashboardPage/>
-    }
-}
-
-#[component]
-fn AssetsView() -> impl IntoView {
-    view! {
-        <AssetsPage/>
-    }
-}
-
-#[component]
-fn TechnologiesView() -> impl IntoView {
-    view! {
-        <TechnologiesPage/>
-    }
-}
-
-#[component]
-fn VulnerabilityView() -> impl IntoView {
-    view! {
-        <VulnerabilitiesPage/>
-    }
-}
-
-#[component]
-fn DiscoveryView() -> impl IntoView {
-    view! {
-        <DiscoveryPage/>
-    }
-}
-
-// Redirect to login route
+// Route components
 #[component]
 fn RedirectToLogin() -> impl IntoView {
-    // Use window.location to redirect
     let _effect = Effect::new(move |_| {
         let window = web_sys::window().expect("no global window exists");
         let _ = window.location().replace("/login");
     });
 
-    // Render nothing while redirecting
-    view! { <div></div> }
+    view! { <div>"Redirecting to login..."</div> }
 }
 
 #[component]
-pub fn AppRouter() -> impl IntoView {
-    view! {
-        <Stylesheet id="main" href="/style/output.css"/>
-        <Router>
-            <Routes fallback=|| view! { <NotFoundView/> }>
-                // Default route redirects to login
-                <Route path=path!("/") view=RedirectToLogin/>
+fn LoginView() -> impl IntoView {
+    view! { <AuthLayout><LoginPage/></AuthLayout> }
+}
 
-                // Login page as a top-level route
-                <Route path=path!("/login") view=LoginView/>
+#[component]
+fn DashboardView() -> impl IntoView {
+    view! { <DashboardPage/> }
+}
 
-                // Dashboard as a top-level route
-                <Route path=path!("/dashboard") view=DashboardView/>
+#[component]
+fn AssetsView() -> impl IntoView {
+    view! { <AppLayout><AssetsPage/></AppLayout> }
+}
 
-                // Other app routes under parent route
-                <ParentRoute path=path!("/app") view=MainLayout>
-                    <Route path=path!("/assets") view=AssetsView/>
-                    <Route path=path!("/technologies") view=TechnologiesView/>
-                    <Route path=path!("/vulnerabilities") view=VulnerabilityView/>
-                    <Route path=path!("/discovery") view=DiscoveryView/>
-                </ParentRoute>
+#[component]
+fn TechnologiesView() -> impl IntoView {
+    view! { <AppLayout><TechnologiesPage/></AppLayout> }
+}
 
-                <Route path=path!("*") view=NotFoundView/>
-            </Routes>
-        </Router>
-    }
+#[component]
+fn VulnerabilityView() -> impl IntoView {
+    view! { <AppLayout><VulnerabilitiesPage/></AppLayout> }
+}
+
+#[component]
+fn DiscoveryView() -> impl IntoView {
+    view! { <AppLayout><DiscoveryPage/></AppLayout> }
 }
