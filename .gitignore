@@ -29,4 +29,4 @@ node_modules/
 Cargo.lock
 
 .sqlx/query-*
-crates/frontend/style/output.css
+crates/frontend/dist

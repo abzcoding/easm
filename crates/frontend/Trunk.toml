@@ -1,11 +1,3 @@
-[[hooks]]
-stage = "pre_build"
-command = "tailwindcss"
-command_arguments = [
-  "-i", "style/main.css", 
-  "-o", "style/output.css",
-]
-
 [build]
 target = "index.html"
 release = false
@@ -17,4 +9,13 @@ watch = ["src", "style", "index.html"]
 
 [serve]
 port = 8080
-open = true 
+open = true
+
+# File type handling
+[serve.static_file_extensions]
+".css" = "text/css"
+
+# Correctly serve style directory files
+[[serve.proxied_static_files]]
+mount_point = "/style"
+assets = ["style"] 

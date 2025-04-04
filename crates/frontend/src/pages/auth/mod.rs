@@ -91,22 +91,22 @@ pub fn LoginPage() -> impl IntoView {
     };
 
     view! {
-        <div class="login-container">
-            <div class="card login-card">
-                <h1 class="login-title">"Login to EASM"</h1>
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #f0f2f5;">
+            <div style="padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); background-color: white; max-width: 400px; width: 90%;">
+                <h1 style="text-align: center; margin-bottom: 1.5rem; color: #333; font-size: 1.8rem; font-weight: 600;">"Login to EASM"</h1>
 
-                <div class="alert alert-danger" style=move || if error.get().is_empty() { "display: none" } else { "display: block" }>
+                <div class="alert alert-danger" style=move || format!("padding: 0.75rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 4px; color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; {}", if error.get().is_empty() { "display: none;" } else { "display: block;" })>
                     {move || error.get()}
                 </div>
 
                 <form on:submit=on_submit>
-                    <div class="form-group">
-                        <label for="username" class="form-label">"Username"</label>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #555;">"Username"</label>
                         <input
                             type="text"
                             id="username"
                             name="username"
-                            class="form-input"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
                             placeholder="Enter your username"
                             on:input=move |ev| {
                                 let input = event_target::<HtmlInputElement>(&ev);
@@ -115,13 +115,13 @@ pub fn LoginPage() -> impl IntoView {
                         />
                     </div>
 
-                    <div class="form-group">
-                        <label for="password" class="form-label">"Password"</label>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #555;">"Password"</label>
                         <input
                             type="password"
                             id="password"
                             name="password"
-                            class="form-input"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
                             placeholder="Enter your password"
                             on:input=move |ev| {
                                 let input = event_target::<HtmlInputElement>(&ev);
@@ -130,14 +130,14 @@ pub fn LoginPage() -> impl IntoView {
                         />
                     </div>
 
-                    <div class="form-group text-center">
-                        <button type="submit" class="btn btn-primary login-btn">
+                    <div style="margin-bottom: 0.75rem;">
+                        <button type="submit" style="width: 100%; padding: 0.85rem; border: none; border-radius: 4px; background-color: #007bff; color: white; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">
                             "Login"
                         </button>
                     </div>
 
-                    <div class="form-group text-center">
-                        <button type="button" class="btn btn-outline-secondary" on:click=logout>
+                    <div>
+                        <button type="button" style="width: 100%; padding: 0.85rem; border: 1px solid #6c757d; border-radius: 4px; background-color: transparent; color: #6c757d; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;" on:click=logout>
                             "Logout"
                         </button>
                     </div>

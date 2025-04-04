@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EASM - External Attack Surface Management</title>
-    <link data-trunk rel="css" href="style/output.css">
+    <link data-trunk rel="copy-dir" href="style">
+    <link rel="stylesheet" href="/style/output.css">
     <link data-trunk rel="copy-dir" href="public">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <!-- Chart.js without integrity check -->
@@ -23,6 +24,37 @@
             background-color: #f9fafb;
             margin: 0;
             padding: 0;
+        }
+        /* Basic fallback styles if CSS doesn't load */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
         }
     </style>
 </head>
