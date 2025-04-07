@@ -142,6 +142,22 @@ mod tests {
 
             Ok(job_assets)
         }
+
+        async fn list_jobs_by_status(
+            &self,
+            status: JobStatus,
+            limit: usize,
+        ) -> Result<Vec<DiscoveryJob>> {
+            let jobs = self.jobs.lock().unwrap();
+            let filtered: Vec<DiscoveryJob> = jobs
+                .values()
+                .filter(|j| j.status == status)
+                .cloned()
+                .take(limit)
+                .collect();
+
+            Ok(filtered)
+        }
     }
 
     #[derive(Clone)]

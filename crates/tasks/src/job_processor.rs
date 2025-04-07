@@ -184,7 +184,14 @@ async fn process_discovery_results(
         // Create or update the asset
         match asset_service.create_asset(&asset).await {
             Ok(_) => tracing::debug!("Created domain asset: {}", asset.value),
-            Err(e) => tracing::warn!("Failed to create domain asset: {}: {}", asset.value, e),
+            Err(e) => {
+                tracing::warn!("Failed to create domain asset: {}: {}", asset.value, e);
+                return Err(anyhow::anyhow!(
+                    "Failed to create domain asset: {}: {}",
+                    asset.value,
+                    e
+                ));
+            }
         }
     }
 
@@ -206,7 +213,14 @@ async fn process_discovery_results(
         // Create or update the asset
         match asset_service.create_asset(&asset).await {
             Ok(_) => tracing::debug!("Created IP asset: {}", asset.value),
-            Err(e) => tracing::warn!("Failed to create IP asset: {}: {}", asset.value, e),
+            Err(e) => {
+                tracing::warn!("Failed to create IP asset: {}: {}", asset.value, e);
+                return Err(anyhow::anyhow!(
+                    "Failed to create IP asset: {}: {}",
+                    asset.value,
+                    e
+                ));
+            }
         }
     }
 
@@ -234,7 +248,11 @@ async fn process_discovery_results(
                     ip_asset.value,
                     e
                 );
-                continue;
+                return Err(anyhow::anyhow!(
+                    "Failed to create IP asset for port: {}: {}",
+                    ip_asset.value,
+                    e
+                ));
             }
         };
 
@@ -272,12 +290,20 @@ async fn process_discovery_results(
                 port.protocol,
                 ip_asset.value
             ),
-            Err(e) => tracing::warn!(
-                "Failed to add port {} to IP {}: {}",
-                port.port,
-                ip_asset.value,
-                e
-            ),
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to add port {} to IP {}: {}",
+                    port.port,
+                    ip_asset.value,
+                    e
+                );
+                return Err(anyhow::anyhow!(
+                    "Failed to add port {} to IP {}: {}",
+                    port.port,
+                    ip_asset.value,
+                    e
+                ));
+            }
         }
     }
 

@@ -6,7 +6,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    models::{Asset, DiscoveryJob, Vulnerability},
+    models::{Asset, DiscoveryJob, JobAssetLink, Vulnerability},
     traits::{AssetRepository, DiscoveryJobRepository, DiscoveryService},
     Result,
 };
@@ -284,17 +284,25 @@ mod tests {
                 limit: usize,
                 offset: usize,
             ) -> Result<Vec<DiscoveryJob>>;
+            async fn count_jobs(
+                &self,
+                organization_id: Option<Uuid>,
+                job_type: Option<JobType>,
+                status: Option<JobStatus>,
+            ) -> Result<usize>;
             async fn list_jobs_by_status(
                 &self,
                 status: JobStatus,
                 limit: usize,
             ) -> Result<Vec<DiscoveryJob>>;
+            async fn create_job_asset_link(&self, link: &JobAssetLink) -> Result<JobAssetLink>;
+            async fn get_job_assets(&self, job_id: Uuid) -> Result<Vec<Asset>>;
         }
     }
 
     #[tokio::test]
     async fn test_get_jobs_by_status() {
-        let mut mock_asset_repo = MockAssetRepo::new();
+        let mock_asset_repo = MockAssetRepo::new();
         let mut mock_job_repo = MockDiscoveryJobRepo::new();
 
         let expected_jobs = vec![DiscoveryJob::new(
