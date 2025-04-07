@@ -179,7 +179,7 @@ mod task_integration_tests {
         // Filter assets that match our pattern
         let job_assets: Vec<Asset> = all_assets
             .into_iter()
-            .filter(|a| a.value.contains(&format!("task-sub")) && a.value.contains(&domain_name))
+            .filter(|a| a.value.contains("task-sub") && a.value.contains(&domain_name))
             .collect();
 
         assert_eq!(job_assets.len(), 2);

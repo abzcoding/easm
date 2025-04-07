@@ -50,18 +50,18 @@ impl TechnologyService for TechnologyServiceImpl {
 
     async fn list_technologies(
         &self,
-        asset_id: Option<Uuid>,
+        id_filter: Option<Uuid>,
         name: Option<String>,
         category: Option<String>,
         limit: usize,
         offset: usize,
     ) -> Result<Vec<Technology>> {
         debug!(
-            "Listing technologies - asset_id: {:?}, name: {:?}, category: {:?}, limit: {}, offset: {}",
-            asset_id, name, category, limit, offset
+            "Listing technologies - id_filter: {:?}, name: {:?}, category: {:?}, limit: {}, offset: {}",
+            id_filter, name, category, limit, offset
         );
         self.repository
-            .list_technologies(asset_id, name, category, limit, offset)
+            .list_technologies(id_filter, name, category, limit, offset)
             .await
     }
 

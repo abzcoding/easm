@@ -4,9 +4,10 @@ use shared::types::{AssetType, JobStatus, JobType, ID};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
+use crate::models::JobAssetLink;
 
 use crate::{
-    models::{Asset, DiscoveryJob, JobAssetLink, Vulnerability},
+    models::{Asset, DiscoveryJob, Vulnerability},
     traits::{AssetRepository, DiscoveryJobRepository, DiscoveryService},
     Result,
 };

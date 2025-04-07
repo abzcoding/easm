@@ -60,3 +60,19 @@ path = "api_integration_test.rs"
 [[test]]
 name = "frontend_integration_test"
 path = "frontend_integration_test.rs"
+
+[[test]]
+name = "port_integration_tests"
+path = "port_integration_tests.rs"
+
+[[test]]
+name = "technology_integration_tests"
+path = "technology_integration_tests.rs"
+
+[[test]]
+name = "vulnerability_integration_tests"
+path = "vulnerability_integration_tests.rs"
+
+[[test]]
+name = "end_to_end_workflow_test"
+path = "end_to_end_workflow_test.rs"

@@ -694,7 +694,7 @@ mod api_integration_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/reports/{}", report_id))
+                    .uri(format!("/api/reports/{}", report_id))
                     .method(http::Method::GET)
                     .header("Authorization", format!("Bearer {}", token))
                     .body(Body::empty())

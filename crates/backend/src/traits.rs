@@ -142,7 +142,7 @@ pub trait TechnologyRepository: Send + Sync + 'static {
 
     async fn list_technologies(
         &self,
-        asset_id: Option<ID>,
+        id_filter: Option<ID>,
         name: Option<String>,
         category: Option<String>,
         limit: usize,
@@ -202,7 +202,7 @@ pub trait VulnerabilityRepository: Send + Sync + 'static {
 
     async fn list_vulnerabilities(
         &self,
-        asset_id: Option<ID>,
+        id_filter: Option<ID>,
         port_id: Option<ID>,
         severity: Option<Severity>,
         status: Option<VulnerabilityStatus>,
@@ -212,7 +212,7 @@ pub trait VulnerabilityRepository: Send + Sync + 'static {
 
     async fn count_vulnerabilities(
         &self,
-        asset_id: Option<ID>,
+        id_filter: Option<ID>,
         port_id: Option<ID>,
         severity: Option<Severity>,
         status: Option<VulnerabilityStatus>,

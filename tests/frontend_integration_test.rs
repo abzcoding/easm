@@ -29,7 +29,7 @@ async fn setup_webdriver() -> Result<Client> {
     Ok(client)
 }
 
-// Helper function to take a screenshot for debugging
+#[allow(clippy::needless_borrow)]
 async fn take_screenshot(client: &Client, name: &str) -> Result<()> {
     // Create a directory for screenshots if it doesn't exist
     let _ = std::fs::create_dir_all("target/debug/screenshots");
@@ -41,45 +41,10 @@ async fn take_screenshot(client: &Client, name: &str) -> Result<()> {
     Ok(())
 }
 
-// Helper to get page source for debugging
+#[allow(clippy::needless_borrow)]
 async fn log_page_source(client: &Client) -> Result<()> {
     let source = client.source().await?;
-    println!("\n--- Page Source Snippet (first 1000 chars) ---");
-    println!("{}", &source[..std::cmp::min(1000, source.len())]);
-    println!("--- End Page Source Snippet ---\n");
-
-    // Also look for specific elements that might help debugging
-    println!("--- Looking for key elements ---");
-
-    // Look for form elements
-    match client.find_all(Locator::Css("form")).await {
-        Ok(forms) => println!("Found {} form elements", forms.len()),
-        Err(_) => println!("No form elements found"),
-    }
-
-    // Look for username/text inputs
-    match client.find_all(Locator::Css("input[type='text']")).await {
-        Ok(inputs) => println!("Found {} text inputs", inputs.len()),
-        Err(_) => println!("No text inputs found"),
-    }
-
-    // Look for password inputs
-    match client
-        .find_all(Locator::Css("input[type='password']"))
-        .await
-    {
-        Ok(inputs) => println!("Found {} password inputs", inputs.len()),
-        Err(_) => println!("No password inputs found"),
-    }
-
-    // Look for buttons
-    match client.find_all(Locator::Css("button")).await {
-        Ok(buttons) => println!("Found {} buttons", buttons.len()),
-        Err(_) => println!("No buttons found"),
-    }
-
-    println!("--- Done looking for elements ---\n");
-
+    println!("Page source: {}", source);
     Ok(())
 }
 
@@ -249,7 +214,7 @@ async fn test_login_and_navigation(client: &Client) -> Result<()> {
     };
 
     // Take a screenshot before clicking the submit button
-    take_screenshot(&client, "before_submit").await?;
+    take_screenshot(client, "before_submit").await?;
 
     // Submit the form
     submit_button.click().await?;
@@ -258,8 +223,8 @@ async fn test_login_and_navigation(client: &Client) -> Result<()> {
     tokio::time::sleep(Duration::from_secs(3)).await;
 
     // Take a screenshot after login
-    take_screenshot(&client, "after_login").await?;
-    log_page_source(&client).await?;
+    take_screenshot(client, "after_login").await?;
+    log_page_source(client).await?;
 
     // Check if we're on the dashboard
     let current_url = client.current_url().await?;

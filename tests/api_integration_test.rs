@@ -1,12 +1,7 @@
 use anyhow::Result;
-use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use serde_json::{json, Value};
 use uuid::Uuid;
-
-// Test organization ID that we'll use in all tests
-static TEST_ORG_ID: Lazy<Uuid> =
-    Lazy::new(|| Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap());
 
 #[tokio::test]
 async fn test_api_health_endpoint() -> Result<()> {

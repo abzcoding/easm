@@ -184,6 +184,11 @@ easm/
 └── README.md
 ```
 
+## Database Schema
+
+- database schema is defined in `migrations/20250331180000_initial_schema.sql` under project root
+- under migrations are also will be defined in `migrations/*`
+
 ## Rust Crates
 
 - Use `axum` as backend(API) framework.
