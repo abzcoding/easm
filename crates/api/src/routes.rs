@@ -12,7 +12,7 @@ use tower_http::{
 use crate::{
     handlers::{
         asset_handler::{create_asset, delete_asset, get_asset, list_assets, update_asset},
-        auth_handler::{login, register},
+        auth_handler::{login, logout, refresh_token, register},
         discovery_task_handler::{
             cancel_discovery_task, create_discovery_task, delete_discovery_task,
             get_discovery_task, list_discovery_tasks,
@@ -30,8 +30,8 @@ use crate::{
         },
     },
     middleware::auth::{
-        auth_middleware, require_admin, require_asset_modification, require_user_management,
-        require_vulnerability_modification,
+        auth_middleware, require_admin, require_asset_modification, require_discovery_permission,
+        require_user_management, require_vulnerability_modification,
     },
     state::AppState,
 };
@@ -58,6 +58,9 @@ pub fn create_router(state: AppState) -> Router {
         .nest(
             "/api",
             Router::new()
+                // Auth routes that require authentication
+                .route("/auth/logout", post(logout))
+                .route("/auth/refresh", post(refresh_token))
                 // Organization management - admin or manager only
                 .route("/organizations", get(list_organizations))
                 .route(

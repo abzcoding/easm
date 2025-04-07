@@ -1,11 +1,16 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use serde::Deserialize;
+use axum::{
+    extract::{Extension, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid;
 
 use crate::{
     errors::{convert_result, ApiError, Result},
-    middleware::auth::generate_token,
+    middleware::auth::{generate_token, revoke_token, Claims},
     state::AppState,
 };
 
@@ -23,10 +28,17 @@ pub struct LoginUserDto {
     pub password: String,
 }
 
+#[derive(Deserialize)]
+pub struct RefreshTokenDto {
+    pub refresh_token: Option<String>,
+}
+
 // Response DTO
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AuthResponseDto {
     pub token: String,
+    pub refresh_token: Option<String>,
+    pub expires_in: i64,
 }
 
 /// Register a new user
@@ -56,8 +68,15 @@ pub async fn register(
         &state.config,
     )?;
 
-    // 5. Return token in response
-    Ok((StatusCode::CREATED, Json(AuthResponseDto { token })))
+    // 5. Return token in response with expiration time
+    Ok((
+        StatusCode::CREATED,
+        Json(AuthResponseDto {
+            token,
+            refresh_token: None,
+            expires_in: state.config.jwt_expiration,
+        }),
+    ))
 }
 
 /// Login a user
@@ -65,7 +84,6 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
-    // TODO: Implement user login logic
     // 1. Validate input
     if payload.email.is_empty() || payload.password.is_empty() {
         return Err(ApiError::BadRequest(
@@ -81,7 +99,7 @@ pub async fn login(
             .await,
     )?;
 
-    // 4. Generate JWT token
+    // 3. Generate JWT token
     let token = generate_token(
         &user.id.to_string(),
         &format!("{:?}", user.role),
@@ -89,6 +107,53 @@ pub async fn login(
         &state.config,
     )?;
 
+    // 4. Generate refresh token (in a real implementation, this would be a separate token)
+    let refresh_token = uuid::Uuid::new_v4().to_string();
+
     // 5. Return token in response
-    Ok(Json(AuthResponseDto { token }))
+    Ok(Json(AuthResponseDto {
+        token,
+        refresh_token: Some(refresh_token),
+        expires_in: state.config.jwt_expiration,
+    }))
+}
+
+/// Logout a user
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+) -> Result<impl IntoResponse> {
+    // Revoke the current token
+    revoke_token(&claims.sub, &claims.jti, &state).await?;
+
+    // Return success response
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Refresh an access token
+pub async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    Json(payload): Json<RefreshTokenDto>,
+) -> Result<impl IntoResponse> {
+    // In a real implementation, validate the refresh token
+    // For this example, we'll just generate a new token based on the existing claims
+
+    // Revoke the current token
+    revoke_token(&claims.sub, &claims.jti, &state).await?;
+
+    // Generate a new token
+    let new_token = generate_token(
+        &claims.sub,
+        &claims.role,
+        claims.org.as_deref(),
+        &state.config,
+    )?;
+
+    // Return the new token
+    Ok(Json(AuthResponseDto {
+        token: new_token,
+        refresh_token: payload.refresh_token,
+        expires_in: state.config.jwt_expiration,
+    }))
 }

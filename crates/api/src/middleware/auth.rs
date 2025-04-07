@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use axum::{
     extract::{Request, State},
@@ -16,14 +16,16 @@ use crate::{errors::ApiError, state::AppState};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: String,         // Subject (user ID)
-    pub role: String,        // User role
-    pub org: Option<String>, // Organization ID
-    pub exp: usize,          // Expiration time
-    pub iat: usize,          // Issued at
-    pub iss: String,         // Issuer
-    pub aud: String,         // Audience
-    pub jti: String,         // JWT ID (for token revocation)
+    pub sub: String,            // Subject (user ID)
+    pub role: String,           // User role
+    pub org: Option<String>,    // Organization ID
+    pub exp: usize,             // Expiration time
+    pub iat: usize,             // Issued at
+    pub iss: String,            // Issuer
+    pub aud: String,            // Audience
+    pub jti: String,            // JWT ID (for token revocation)
+    pub device: Option<String>, // Device info for better logging/tracking
+    pub scope: Option<String>,  // Token scope for fine-grained permissions
 }
 
 impl Claims {
@@ -77,10 +79,13 @@ pub async fn auth_middleware(
     // Extract the token
     let token = &auth_header["Bearer ".len()..];
 
-    // Set up validation
+    // Set up validation with more strict settings
     let mut validation = Validation::default();
     validation.set_issuer(&["easm-api"]);
     validation.set_audience(&["easm-client"]);
+    validation.validate_exp = true;
+    validation.validate_nbf = true;
+    validation.leeway = 5; // 5 seconds of leeway for clock skew
 
     // Validate token
     let token_data = match decode::<Claims>(
@@ -96,6 +101,13 @@ pub async fn auth_middleware(
             _ => return Err(ApiError::InvalidToken),
         },
     };
+
+    // Check if token has been revoked (pseudocode - real implementation would check Redis or DB)
+    // if let Some(revoked_tokens) = state.revoked_tokens.read().await.get(&token_data.claims.sub) {
+    //     if revoked_tokens.contains(&token_data.claims.jti) {
+    //         return Err(ApiError::TokenRevoked);
+    //     }
+    // }
 
     // Add claims to request extensions
     req.extensions_mut().insert(token_data.claims.clone());
@@ -175,7 +187,7 @@ pub fn generate_token(
     // Calculate issued at time
     let issued_at = Utc::now().timestamp() as usize;
 
-    // Create the claims
+    // Create the claims with enhanced fields
     let claims = Claims {
         sub: user_id.to_string(),
         role: role.to_string(),
@@ -185,13 +197,37 @@ pub fn generate_token(
         iss: "easm-api".to_string(),
         aud: "easm-client".to_string(),
         jti: Uuid::new_v4().to_string(), // Unique token ID
+        device: None,
+        scope: None,
     };
 
-    // Encode the token
+    // Use a more secure header with the alg field explicitly set
+    let mut header = Header::default();
+    header.alg = jsonwebtoken::Algorithm::HS256;
+    header.typ = Some("JWT".to_string());
+
+    // Encode the token with enhanced header
     encode(
-        &Header::default(),
+        &header,
         &claims,
         &EncodingKey::from_secret(config.jwt_secret.as_bytes()),
     )
     .map_err(|e| ApiError::InternalServerError(format!("Token generation error: {}", e)))
+}
+
+/// Revoke a JWT token (pseudocode - would be implemented with Redis or DB)
+pub async fn revoke_token(
+    _user_id: &str,
+    _token_id: &str,
+    _state: &Arc<AppState>,
+) -> Result<(), ApiError> {
+    // Implementation would store the JTI in a Redis set or DB table
+    // with a TTL matching the token's original expiration
+
+    // Example with Redis:
+    // let key = format!("revoked:{}:{}", user_id, token_id);
+    // let _: () = state.redis.set_ex(key, "1", token_ttl_seconds).await
+    //    .map_err(|e| ApiError::InternalServerError(format!("Token revocation error: {}", e)))?;
+
+    Ok(())
 }
