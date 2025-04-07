@@ -2,11 +2,10 @@ use leptos::prelude::{provide_context, Children, Effect, ElementChild};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::{
-    components::{Route, Router, Routes, A},
+    components::{Route, Router, Routes},
     location::RequestUrl,
-    path, NavigateOptions,
+    path,
 };
-use wasm_bindgen::JsValue;
 
 use crate::components::layout::{AppLayout, AuthLayout};
 use crate::pages::{

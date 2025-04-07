@@ -162,9 +162,11 @@ impl IntoResponse for ApiError {
             ApiError::TokenExpired => (StatusCode::UNAUTHORIZED, self.to_string(), "TOKEN_EXPIRED"),
             ApiError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string(), "UNAUTHORIZED"),
             ApiError::Forbidden => (StatusCode::FORBIDDEN, self.to_string(), "FORBIDDEN"),
-            ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, self.to_string(), "NOT_FOUND"),
-            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, self.to_string(), "BAD_REQUEST"),
-            ApiError::Conflict(msg) => (StatusCode::CONFLICT, self.to_string(), "CONFLICT"),
+            ApiError::NotFound(_msg) => (StatusCode::NOT_FOUND, self.to_string(), "NOT_FOUND"),
+            ApiError::BadRequest(_msg) => {
+                (StatusCode::BAD_REQUEST, self.to_string(), "BAD_REQUEST")
+            }
+            ApiError::Conflict(_msg) => (StatusCode::CONFLICT, self.to_string(), "CONFLICT"),
             ApiError::RateLimited => (
                 StatusCode::TOO_MANY_REQUESTS,
                 self.to_string(),

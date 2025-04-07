@@ -55,8 +55,8 @@ pub fn LoginPage() -> impl IntoView {
         let password_val = password.get();
         let navigate = navigate.clone();
         let client = api_client.clone();
-        let set_error = set_error.clone();
-        let set_loading = set_loading.clone();
+        let set_error = set_error;
+        let set_loading = set_loading;
 
         // Basic validation
         if email_val.is_empty() || password_val.is_empty() {

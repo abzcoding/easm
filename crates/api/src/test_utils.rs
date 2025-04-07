@@ -214,12 +214,11 @@ impl backend::AssetService for MockAssetService {
 
     async fn create_asset_relationship(
         &self,
-        source_asset_id: ID,
-        target_asset_id: ID,
-        relationship_type: String,
+        _source_asset_id: ID,
+        _target_asset_id: ID,
+        _relationship_type: String,
         _metadata: Option<serde_json::Value>,
     ) -> Result<bool> {
-        // Mock implementation - always succeeds
         Ok(true)
     }
 
@@ -636,6 +635,14 @@ pub fn create_test_app_state() -> AppState {
             &self,
             _job_id: ID,
         ) -> backend::Result<Vec<backend::models::Asset>> {
+            Ok(vec![])
+        }
+
+        async fn list_jobs_by_status(
+            &self,
+            _status: shared::types::JobStatus,
+            _limit: usize,
+        ) -> backend::Result<Vec<backend::models::DiscoveryJob>> {
             Ok(vec![])
         }
     }

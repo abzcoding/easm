@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use shared::types::{AssetStatus, AssetType, Timestamp, ID};
 use std::collections::HashMap;
+use std::str::FromStr;
 
 /// Asset model representing internet-facing assets
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,9 +265,13 @@ impl AssetRelationshipType {
             Self::Custom(s) => s.clone(),
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
-        match s {
+impl FromStr for AssetRelationshipType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = match s {
             "subdomain" => Self::Subdomain,
             "hosted_on" => Self::HostedOn,
             "redirects_to" => Self::RedirectsTo,
@@ -281,7 +286,8 @@ impl AssetRelationshipType {
             "has_public_ip" => Self::HasPublicIP,
             "belongs_to" => Self::BelongsTo,
             _ => Self::Custom(s.to_string()),
-        }
+        };
+        Ok(result)
     }
 }
 

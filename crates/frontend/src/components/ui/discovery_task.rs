@@ -45,17 +45,17 @@ pub fn DiscoveryTaskForm(
     #[prop(into)] on_success: Callback<()>,
     #[prop(into)] on_cancel: Callback<()>,
 ) -> impl IntoView {
-    let (task_type, set_task_type) = create_signal(DiscoveryTaskType::DnsEnumeration);
-    let (target, set_target) = create_signal(String::new());
-    let (is_nuclei, set_is_nuclei) = create_signal(false);
-    let (templates, set_templates) = create_signal(String::new());
-    let (severity, set_severity) = create_signal(String::from("medium,high,critical"));
-    let (rate_limit, set_rate_limit) = create_signal(50u32);
-    let (is_submitting, set_is_submitting) = create_signal(false);
-    let (error_message, set_error_message) = create_signal(String::new());
+    let (task_type, set_task_type) = signal(DiscoveryTaskType::DnsEnumeration);
+    let (target, set_target) = signal(String::new());
+    let (is_nuclei, set_is_nuclei) = signal(false);
+    let (templates, set_templates) = signal(String::new());
+    let (severity, set_severity) = signal(String::from("medium,high,critical"));
+    let (rate_limit, set_rate_limit) = signal(50u32);
+    let (is_submitting, set_is_submitting) = signal(false);
+    let (error_message, set_error_message) = signal(String::new());
 
     // Watch for changes to task_type to update the is_nuclei flag
-    create_effect(move |_| {
+    Effect::new(move |_| {
         set_is_nuclei.update(|is_nuclei| {
             *is_nuclei = task_type.get() == DiscoveryTaskType::VulnerabilityScanNuclei;
         });
@@ -164,14 +164,14 @@ pub fn DiscoveryTaskForm(
         }
 
         // Get auth token from localStorage
-        let token = web_sys::window()
+        let _token = web_sys::window()
             .and_then(|window| window.local_storage().ok())
             .flatten()
             .and_then(|storage| storage.get_item("token").ok())
             .flatten();
 
         // Clone needed values for async block
-        let on_success_cloned = on_success.clone();
+        let on_success_cloned = on_success;
 
         // Fake API request for now
         // In a real implementation, this would be an actual API call with gloo_net

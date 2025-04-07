@@ -10,6 +10,7 @@ use backend::{
 };
 use shared::types::{AssetStatus, AssetType, JobStatus, JobType, ID};
 use sqlx::PgPool;
+use sqlx::Row;
 
 /// PostgreSQL implementation of the DiscoveryJob Repository
 pub struct PgDiscoveryJobRepository {
@@ -255,10 +256,52 @@ impl DiscoveryJobRepository for PgDiscoveryJobRepository {
             query_builder.push_bind(st as JobStatus);
         }
 
-        let query = query_builder.build_query_scalar();
-        let count: i64 = query.fetch_one(&self.pool).await?;
+        let count: i64 = query_builder.build().fetch_one(&self.pool).await?.get(0);
 
         Ok(count as usize)
+    }
+
+    async fn list_jobs_by_status(
+        &self,
+        status: JobStatus,
+        limit: usize,
+    ) -> Result<Vec<DiscoveryJob>> {
+        let records = sqlx::query!(
+            r#"
+            SELECT
+                id, organization_id, job_type as "job_type: JobType", status as "status: JobStatus", 
+                target, started_at, completed_at, logs, configuration, created_at, updated_at
+            FROM discovery_jobs
+            WHERE status = $1
+            ORDER BY created_at ASC
+            LIMIT $2
+            "#,
+            status as JobStatus,
+            limit as i64
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let jobs = records
+            .into_iter()
+            .map(|record| DiscoveryJob {
+                id: record.id,
+                organization_id: record.organization_id,
+                job_type: record.job_type,
+                status: record.status,
+                target: record.target,
+                started_at: from_option_offset_datetime(record.started_at),
+                completed_at: from_option_offset_datetime(record.completed_at),
+                logs: record.logs,
+                configuration: record
+                    .configuration
+                    .expect("Job configuration should not be null"),
+                created_at: from_offset_datetime(Some(record.created_at)),
+                updated_at: from_offset_datetime(Some(record.updated_at)),
+            })
+            .collect();
+
+        Ok(jobs)
     }
 
     async fn create_job_asset_link(&self, link: &JobAssetLink) -> Result<JobAssetLink> {

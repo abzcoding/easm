@@ -528,8 +528,10 @@ mod service_integration_tests {
             .expect("Failed to create organization");
 
         // Create the discovery service
-        let discovery_service =
-            backend::services::DiscoveryServiceImpl::new(factory.asset_repository());
+        let discovery_service = backend::services::DiscoveryServiceImpl::new(
+            factory.asset_repository(),
+            factory.discovery_job_repository(),
+        );
 
         // Test the discovery service for a domain
         let domain = "service-discovery-example.com";

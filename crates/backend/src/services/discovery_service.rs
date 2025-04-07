@@ -1,21 +1,71 @@
 use async_trait::async_trait;
-use shared::types::{AssetType, JobType, ID};
+use chrono::Utc;
+use shared::types::{AssetType, JobStatus, JobType, ID};
 use std::sync::Arc;
 use tracing::info;
+use uuid::Uuid;
 
 use crate::{
     models::{Asset, DiscoveryJob, Vulnerability},
-    traits::{AssetRepository, DiscoveryService},
+    traits::{AssetRepository, DiscoveryJobRepository, DiscoveryService},
     Result,
 };
 
 pub struct DiscoveryServiceImpl {
     asset_repository: Arc<dyn AssetRepository>,
+    discovery_job_repository: Arc<dyn DiscoveryJobRepository>,
 }
 
 impl DiscoveryServiceImpl {
-    pub fn new(asset_repository: Arc<dyn AssetRepository>) -> Self {
-        Self { asset_repository }
+    pub fn new(
+        asset_repository: Arc<dyn AssetRepository>,
+        discovery_job_repository: Arc<dyn DiscoveryJobRepository>,
+    ) -> Self {
+        Self {
+            asset_repository,
+            discovery_job_repository,
+        }
+    }
+
+    // Get jobs by status
+    pub async fn get_jobs_by_status(
+        &self,
+        status: JobStatus,
+        limit: usize,
+    ) -> Result<Vec<DiscoveryJob>> {
+        self.discovery_job_repository
+            .list_jobs_by_status(status, limit)
+            .await
+    }
+
+    // Update job
+    pub async fn update_job(&self, job: &DiscoveryJob) -> Result<DiscoveryJob> {
+        self.discovery_job_repository.update_job(job).await
+    }
+
+    // Create a new job
+    pub async fn create_job(
+        &self,
+        organization_id: Uuid,
+        job_type: JobType,
+        target: Option<String>,
+        configuration: Option<serde_json::Value>,
+    ) -> Result<DiscoveryJob> {
+        let job = DiscoveryJob {
+            id: Uuid::new_v4(),
+            organization_id,
+            job_type,
+            status: JobStatus::Pending,
+            target,
+            started_at: None,
+            completed_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            logs: None,
+            configuration: configuration.unwrap_or(serde_json::Value::Null),
+        };
+
+        self.discovery_job_repository.create_job(&job).await
     }
 
     async fn discover_domains(&self, organization_id: ID, domain: &str) -> Result<Vec<Asset>> {
@@ -124,6 +174,16 @@ impl DiscoveryService for DiscoveryServiceImpl {
     ) -> Result<DiscoveryJob> {
         info!("Starting asset discovery for domain: {}", domain);
 
+        // Create a job record for this discovery request
+        let job = self
+            .create_job(
+                organization_id,
+                JobType::DnsEnum,
+                Some(domain.to_string()),
+                None,
+            )
+            .await?;
+
         let mut discovered_assets = Vec::new();
 
         // Domain discovery - map JobType to our internal DiscoveryMethod
@@ -152,16 +212,16 @@ impl DiscoveryService for DiscoveryServiceImpl {
 
         info!("Discovered {} assets", discovered_assets.len());
 
-        // In a real implementation, we would create a job record and return it
-        // For now, we'll just create a dummy job
-        let job = DiscoveryJob::new(
-            organization_id,
-            JobType::DnsEnum,
-            Some(domain.to_string()),
-            None,
-        );
+        // Update the job status
+        let mut updated_job = job.clone();
+        updated_job.status = JobStatus::Completed;
+        updated_job.completed_at = Some(Utc::now());
+        let updated_job = self
+            .discovery_job_repository
+            .update_job(&updated_job)
+            .await?;
 
-        Ok(job)
+        Ok(updated_job)
     }
 
     async fn scan_asset(&self, asset_id: ID) -> Result<Vec<Vulnerability>> {
@@ -170,5 +230,93 @@ impl DiscoveryService for DiscoveryServiceImpl {
         // This would be implemented with actual vulnerability scanning logic
         // For now, just return an empty list of vulnerabilities
         Ok(Vec::new())
+    }
+}
+
+// Basic tests for DiscoveryServiceImpl
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::traits::{AssetRepository, DiscoveryJobRepository};
+    use mockall::mock;
+    use mockall::predicate::*;
+    use shared::types::{AssetStatus, AssetType, JobStatus, JobType};
+    use uuid::Uuid;
+
+    mock! {
+        AssetRepo {}
+        #[async_trait]
+        impl AssetRepository for AssetRepo {
+            async fn create_asset(&self, asset: &Asset) -> Result<Asset>;
+            async fn get_asset(&self, id: Uuid) -> Result<Asset>;
+            async fn update_asset(&self, asset: &Asset) -> Result<Asset>;
+            async fn delete_asset(&self, id: Uuid) -> Result<bool>;
+            async fn list_assets(
+                &self,
+                organization_id: Option<Uuid>,
+                asset_type: Option<AssetType>,
+                status: Option<AssetStatus>,
+                limit: usize,
+                offset: usize,
+            ) -> Result<Vec<Asset>>;
+            async fn count_assets(
+                &self,
+                organization_id: Option<Uuid>,
+                asset_type: Option<AssetType>,
+                status: Option<AssetStatus>,
+            ) -> Result<usize>;
+        }
+    }
+
+    mock! {
+        DiscoveryJobRepo {}
+        #[async_trait]
+        impl DiscoveryJobRepository for DiscoveryJobRepo {
+            async fn create_job(&self, job: &DiscoveryJob) -> Result<DiscoveryJob>;
+            async fn get_job(&self, id: Uuid) -> Result<DiscoveryJob>;
+            async fn update_job(&self, job: &DiscoveryJob) -> Result<DiscoveryJob>;
+            async fn delete_job(&self, id: Uuid) -> Result<bool>;
+            async fn list_jobs(
+                &self,
+                organization_id: Option<Uuid>,
+                job_type: Option<JobType>,
+                status: Option<JobStatus>,
+                limit: usize,
+                offset: usize,
+            ) -> Result<Vec<DiscoveryJob>>;
+            async fn list_jobs_by_status(
+                &self,
+                status: JobStatus,
+                limit: usize,
+            ) -> Result<Vec<DiscoveryJob>>;
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_jobs_by_status() {
+        let mut mock_asset_repo = MockAssetRepo::new();
+        let mut mock_job_repo = MockDiscoveryJobRepo::new();
+
+        let expected_jobs = vec![DiscoveryJob::new(
+            Uuid::new_v4(),
+            JobType::DnsEnum,
+            Some("example.com".to_string()),
+            None,
+        )];
+
+        mock_job_repo
+            .expect_list_jobs_by_status()
+            .with(eq(JobStatus::Pending), eq(10))
+            .times(1)
+            .returning(move |_, _| Ok(expected_jobs.clone()));
+
+        let service = DiscoveryServiceImpl::new(Arc::new(mock_asset_repo), Arc::new(mock_job_repo));
+
+        let jobs = service
+            .get_jobs_by_status(JobStatus::Pending, 10)
+            .await
+            .unwrap();
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].job_type, JobType::DnsEnum);
     }
 }

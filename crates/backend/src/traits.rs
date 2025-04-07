@@ -245,6 +245,13 @@ pub trait DiscoveryJobRepository: Send + Sync + 'static {
         status: Option<JobStatus>,
     ) -> Result<usize>;
 
+    /// List jobs by status with a limit
+    async fn list_jobs_by_status(
+        &self,
+        status: JobStatus,
+        limit: usize,
+    ) -> Result<Vec<DiscoveryJob>>;
+
     async fn create_job_asset_link(&self, link: &JobAssetLink) -> Result<JobAssetLink>;
 
     /// Link a job to an asset (convenience method that calls create_job_asset_link)

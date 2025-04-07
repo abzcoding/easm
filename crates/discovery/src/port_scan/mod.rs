@@ -423,3 +423,43 @@ fn detect_service_from_banner(banner: &str, port: u16) -> String {
 
 // Add the naabu module
 pub mod naabu;
+
+/// Port Scanner struct for scanning IP addresses
+pub struct PortScanner {}
+
+impl Default for PortScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PortScanner {
+    /// Create a new port scanner
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    /// Scan an IP address for open ports
+    /// If ports is None, scans common ports
+    pub async fn scan_ip(&self, ip_str: &str, ports: Option<&[u16]>) -> Result<DiscoveryResult> {
+        // Parse IP
+        let ip = match ip_str.parse::<IpAddr>() {
+            Ok(ip) => ip,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Invalid IP address {}: {}", ip_str, e));
+            }
+        };
+
+        // Use common ports if none specified
+        let ports_to_scan = match ports {
+            Some(p) => p.to_vec(),
+            None => vec![
+                21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1723, 3306,
+                3389, 5900, 8080, 8443,
+            ],
+        };
+
+        // Scan the IP
+        scan_ip(ip, &ports_to_scan).await
+    }
+}

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::{Request, State},
@@ -201,12 +201,14 @@ pub fn generate_token(
         scope: None,
     };
 
-    // Use a more secure header with the alg field explicitly set
-    let mut header = Header::default();
-    header.alg = jsonwebtoken::Algorithm::HS256;
-    header.typ = Some("JWT".to_string());
+    // Set up JWT header using the correct approach
+    let header = Header {
+        alg: jsonwebtoken::Algorithm::HS256,
+        typ: Some("JWT".to_string()),
+        ..Default::default()
+    };
 
-    // Encode the token with enhanced header
+    // Encode the token with enhanced configuration
     encode(
         &header,
         &claims,
