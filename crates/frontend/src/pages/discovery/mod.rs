@@ -48,7 +48,7 @@ struct DiscoveryJob {
 #[component]
 pub fn DiscoveryPage() -> impl IntoView {
     // Create API client
-    let mut api_client_value = ApiClient::new("http://localhost:8080/api".to_string());
+    let mut api_client_value = ApiClient::new("http://localhost:3000/api".to_string());
 
     // Set token if available
     if let Some(token) = get_auth_token() {

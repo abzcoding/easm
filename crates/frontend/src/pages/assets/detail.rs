@@ -11,7 +11,7 @@ pub fn AssetDetailPage() -> impl IntoView {
     let asset_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap_or_default();
     
     // We'd fetch the asset details using the API client
-    let _api_client = ApiClient::new("http://localhost:8080/api".to_string());
+    let _api_client = ApiClient::new("http://localhost:3000/api".to_string());
     
     // Mock asset data (in a real app, this would come from an API call)
     let (asset, _set_asset) = create_signal(Some(Asset {

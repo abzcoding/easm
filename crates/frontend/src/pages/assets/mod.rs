@@ -41,7 +41,7 @@ enum ModalState {
 #[component]
 pub fn AssetsPage() -> impl IntoView {
     // Create API client
-    let api_client = create_rw_signal(ApiClient::new("http://localhost:8080/api".to_string()));
+    let api_client = RwSignal::new(ApiClient::new("http://localhost:3000/api".to_string()));
 
     // Set token if available
     if let Some(token) = get_auth_token() {
@@ -49,29 +49,29 @@ pub fn AssetsPage() -> impl IntoView {
     }
 
     // Create signals for assets and UI state
-    let (assets, set_assets) = create_signal(Vec::<Asset>::new());
-    let (loading, set_loading) = create_signal(false);
-    let (error, set_error) = create_signal::<Option<String>>(None);
-    let (modal_state, set_modal_state) = create_signal(ModalState::Closed);
+    let (assets, set_assets) = signal(Vec::<Asset>::new());
+    let (loading, set_loading) = signal(false);
+    let (error, set_error) = signal::<Option<String>>(None);
+    let (modal_state, set_modal_state) = signal(ModalState::Closed);
 
     // Form signals
-    let (form_asset_type, set_form_asset_type) = create_signal(String::new());
-    let (form_asset_value, set_form_asset_value) = create_signal(String::new());
-    let (form_asset_status, set_form_asset_status) = create_signal("ACTIVE".to_string());
+    let (form_asset_type, set_form_asset_type) = signal(String::new());
+    let (form_asset_value, set_form_asset_value) = signal(String::new());
+    let (form_asset_status, set_form_asset_status) = signal("ACTIVE".to_string());
 
     // Search and filter signals
-    let (search_query, set_search_query) = create_signal(String::new());
-    let (filter_type, set_filter_type) = create_signal::<Option<String>>(None);
-    let (filter_status, set_filter_status) = create_signal::<Option<String>>(None);
+    let (search_query, set_search_query) = signal(String::new());
+    let (filter_type, set_filter_type) = signal::<Option<String>>(None);
+    let (filter_status, set_filter_status) = signal::<Option<String>>(None);
 
     // Define the signals for form values
-    let (new_asset_name, set_new_asset_name) = create_signal("".to_string());
-    let (new_asset_type, set_new_asset_type) = create_signal("".to_string());
+    let (new_asset_name, set_new_asset_name) = signal("".to_string());
+    let (new_asset_type, set_new_asset_type) = signal("".to_string());
 
-    let (edit_asset_name, set_edit_asset_name) = create_signal("".to_string());
-    let (edit_asset_type, set_edit_asset_type) = create_signal("".to_string());
+    let (edit_asset_name, set_edit_asset_name) = signal("".to_string());
+    let (edit_asset_type, set_edit_asset_type) = signal("".to_string());
 
-    let (delete_asset_name, set_delete_asset_name) = create_signal("".to_string());
+    let (delete_asset_name, set_delete_asset_name) = signal("".to_string());
 
     // Function to fetch assets from the API
     let fetch_assets = move || {
@@ -249,7 +249,7 @@ pub fn AssetsPage() -> impl IntoView {
     };
 
     // Call the fetch_assets function when the component mounts
-    create_effect(move |_| {
+    Effect::new(move |_| {
         fetch_assets();
     });
 

@@ -27,7 +27,7 @@ pub fn LoginPage() -> impl IntoView {
     let (error, set_error) = signal(String::new());
     let (loading, set_loading) = signal(false);
     let navigate = use_navigate();
-    let api_client = ApiClient::new("http://localhost:8080/api".to_string());
+    let api_client = ApiClient::new("http://localhost:3000/api".to_string());
 
     // Check if we already have a token
     let api_client_clone = api_client.clone();
