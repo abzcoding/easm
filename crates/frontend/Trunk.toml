@@ -18,4 +18,4 @@ open = true
 # Correctly serve style directory files
 [[serve.proxied_static_files]]
 mount_point = "/style"
-assets = ["style"] 
+assets = ["style"]

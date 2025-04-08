@@ -48,7 +48,7 @@ struct DiscoveryJob {
 #[component]
 pub fn DiscoveryPage() -> impl IntoView {
     // Create API client
-    let mut api_client_value = ApiClient::new("http://localhost:3000/api".to_string());
+    let mut api_client_value = ApiClient::new("http://localhost:3000".to_string());
 
     // Set token if available
     if let Some(token) = get_auth_token() {
@@ -84,7 +84,7 @@ pub fn DiscoveryPage() -> impl IntoView {
         spawn_local(async move {
             // Fetch active jobs
             match client
-                .get::<Vec<DiscoveryJobResponse>>("/discovery/jobs?status=RUNNING,PENDING")
+                .get::<Vec<DiscoveryJobResponse>>("/api/discovery/jobs?status=RUNNING,PENDING")
                 .await
             {
                 Ok(response) => {
@@ -121,7 +121,7 @@ pub fn DiscoveryPage() -> impl IntoView {
 
             // Fetch completed jobs
             match client
-                .get::<Vec<DiscoveryJobResponse>>("/discovery/jobs?status=COMPLETED,FAILED")
+                .get::<Vec<DiscoveryJobResponse>>("/api/discovery/jobs?status=COMPLETED,FAILED")
                 .await
             {
                 Ok(response) => {
@@ -160,7 +160,7 @@ pub fn DiscoveryPage() -> impl IntoView {
             // Send the job request
             spawn_local(async move {
                 match client
-                    .post::<DiscoveryJobResponse, _>("/discovery/jobs", &job_request)
+                    .post::<DiscoveryJobResponse, _>("/api/discovery/jobs", &job_request)
                     .await
                 {
                     Ok(response) => {

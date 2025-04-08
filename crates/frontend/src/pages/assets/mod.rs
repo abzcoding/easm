@@ -41,7 +41,7 @@ enum ModalState {
 #[component]
 pub fn AssetsPage() -> impl IntoView {
     // Create API client
-    let api_client = RwSignal::new(ApiClient::new("http://localhost:3000/api".to_string()));
+    let api_client = RwSignal::new(ApiClient::new("http://localhost:3000".to_string()));
 
     // Set token if available
     if let Some(token) = get_auth_token() {
@@ -80,7 +80,7 @@ pub fn AssetsPage() -> impl IntoView {
 
         let client = api_client.get().clone();
         spawn_local(async move {
-            match client.get::<Vec<AssetResponse>>("/assets").await {
+            match client.get::<Vec<AssetResponse>>("/api/assets").await {
                 Ok(response) => {
                     // Convert API response to Asset format
                     let mapped_assets: Vec<Asset> = response
@@ -140,7 +140,7 @@ pub fn AssetsPage() -> impl IntoView {
         let client = api_client.get().clone();
         spawn_local(async move {
             match client
-                .post::<AssetResponse, _>("/assets", &asset_request)
+                .post::<AssetResponse, _>("/api/assets", &asset_request)
                 .await
             {
                 Ok(_) => {
@@ -191,7 +191,7 @@ pub fn AssetsPage() -> impl IntoView {
         let client = api_client.get().clone();
         spawn_local(async move {
             match client
-                .put::<AssetResponse, _>(&format!("/assets/{}", id), &asset_request)
+                .put::<AssetResponse, _>(&format!("/api/assets/{}", id), &asset_request)
                 .await
             {
                 Ok(_) => {
@@ -224,7 +224,7 @@ pub fn AssetsPage() -> impl IntoView {
 
         let client = api_client.get().clone();
         spawn_local(async move {
-            match client.delete::<()>(&format!("/assets/{}", id)).await {
+            match client.delete::<()>(&format!("/api/assets/{}", id)).await {
                 Ok(_) => {
                     // Refresh the assets list and close the modal in the main thread
                     spawn_local(async move {

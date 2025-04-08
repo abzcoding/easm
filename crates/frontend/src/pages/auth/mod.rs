@@ -1,5 +1,5 @@
 use crate::api::{ApiClient, ApiError};
-use crate::pages::auth::hooks::use_navigate;
+use crate::pages::auth::hooks::use_auth_navigate;
 use crate::utils::{clear_auth_token, get_auth_token, save_auth_token};
 use leptos::prelude::*;
 use leptos_router::*;
@@ -26,8 +26,8 @@ pub fn LoginPage() -> impl IntoView {
     let (password, set_password) = signal(String::new());
     let (error, set_error) = signal(String::new());
     let (loading, set_loading) = signal(false);
-    let navigate = use_navigate();
-    let api_client = ApiClient::new("http://localhost:3000/api".to_string());
+    let navigate = use_auth_navigate();
+    let api_client = ApiClient::new("http://localhost:3000".to_string());
 
     // Check if we already have a token
     let api_client_clone = api_client.clone();
@@ -76,7 +76,7 @@ pub fn LoginPage() -> impl IntoView {
         spawn_local(async move {
             // Make API call to login
             match client
-                .post::<AuthResponse, _>("/auth/login", &login_request)
+                .post::<AuthResponse, _>("/api/auth/login", &login_request)
                 .await
             {
                 Ok(response) => {

@@ -54,13 +54,13 @@ pub fn create_router(state: AppState) -> Router {
         // Auth routes (NO middleware)
         .route("/api/auth/register", post(register))
         .route("/api/auth/login", post(login))
-        // Protected routes with authentication
         .nest(
             "/api",
             Router::new()
                 // Auth routes that require authentication
                 .route("/auth/logout", post(logout))
                 .route("/auth/refresh", post(refresh_token))
+                // Protected routes with authentication
                 // Organization management - admin or manager only
                 .route("/organizations", get(list_organizations))
                 .route(
