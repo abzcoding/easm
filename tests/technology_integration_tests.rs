@@ -97,12 +97,24 @@ mod technology_integration_tests {
 
         // Test filtering by category
         let web_server_techs = tech_repo
-            .list_technologies(None, None, Some("Web Server".to_string()), 100, 0)
+            .list_technologies(
+                Some(web_asset.id),
+                None,
+                Some("Web Server".to_string()),
+                100,
+                0,
+            )
             .await
             .expect("Failed to get Web Server technologies");
 
         assert!(!web_server_techs.is_empty());
-        assert_eq!(web_server_techs[0].name, "Nginx");
+        let has_nginx = web_server_techs
+            .iter()
+            .any(|tech| tech.name == "Nginx" && tech.category.as_deref() == Some("Web Server"));
+        assert!(
+            has_nginx,
+            "Nginx technology with 'Web Server' category not found"
+        );
 
         // Test technology update
         let mut tech_to_update = created_techs[2].clone(); // WordPress

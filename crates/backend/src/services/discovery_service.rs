@@ -1,10 +1,10 @@
+use crate::models::JobAssetLink;
 use async_trait::async_trait;
 use chrono::Utc;
 use shared::types::{AssetType, JobStatus, JobType, ID};
 use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
-use crate::models::JobAssetLink;
 
 use crate::{
     models::{Asset, DiscoveryJob, Vulnerability},

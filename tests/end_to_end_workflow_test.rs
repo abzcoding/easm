@@ -180,7 +180,10 @@ mod end_to_end_workflow_tests {
                 .filter(|a| a.asset_type == AssetType::WebApp)
                 .filter_map(|a| {
                     let attrs = &a.attributes;
-                    attrs.get("domain").and_then(|d| d.as_str()).map(|domain| (domain.to_string(), a))
+                    attrs
+                        .get("domain")
+                        .and_then(|d| d.as_str())
+                        .map(|domain| (domain.to_string(), a))
                 })
                 .collect();
 
@@ -219,12 +222,20 @@ mod end_to_end_workflow_tests {
 
             // 2. Check for web vulnerabilities
             for asset in assets.iter().filter(|a| a.asset_type == AssetType::WebApp) {
+                println!("Checking web app for vulnerabilities: {}", asset.value);
                 // WordPress vulnerabilities
                 let attrs = &asset.attributes;
-                if let Some(techs) = attrs.get("technologies").and_then(|t| t.as_array()) {
-                    for tech in techs {
+
+                if let Some(techs) = attrs.get("technologies") {
+                    println!("Found technologies attribute: {:?}", techs);
+                    let techs_array = techs.as_array().cloned().unwrap_or_default();
+
+                    for tech in techs_array {
                         if let Some(tech_name) = tech.as_str() {
-                            if tech_name.starts_with("WordPress") {
+                            println!("Checking technology: {}", tech_name);
+
+                            if tech_name.contains("WordPress") {
+                                println!("Found WordPress! Creating high severity vulnerability");
                                 // Add XSS vulnerability
                                 let vuln1 = Vulnerability::new(
                                     asset.id,
@@ -260,7 +271,8 @@ mod end_to_end_workflow_tests {
                             }
 
                             // Node.js vulnerabilities
-                            if tech_name.starts_with("Node.js") {
+                            if tech_name.contains("Node.js") {
+                                println!("Found Node.js! Creating high severity vulnerability");
                                 // Add prototype pollution vulnerability
                                 let vuln = Vulnerability::new(
                                     asset.id,
@@ -310,8 +322,22 @@ mod end_to_end_workflow_tests {
                             vulnerabilities.push(vuln);
                         }
                     }
+                } else {
+                    println!(
+                        "No technologies attribute found for web app: {}",
+                        asset.value
+                    );
                 }
             }
+
+            println!(
+                "Created {} vulnerabilities, with {} high severity",
+                vulnerabilities.len(),
+                vulnerabilities
+                    .iter()
+                    .filter(|v| v.severity == Severity::High)
+                    .count()
+            );
 
             Ok(vulnerabilities)
         }
@@ -620,15 +646,19 @@ mod end_to_end_workflow_tests {
             let mut attributes = json!({
                 "domain": domain,
                 "status_code": web_resource.status_code,
-                "title": web_resource.title
+                "title": web_resource.title,
+                "technologies": tech_stack.get("technologies").cloned().unwrap_or(json!([]))
             });
 
             // Merge with discovered attributes
             if let Some(obj) = attributes.as_object_mut() {
                 if let Some(tech_obj) = tech_stack.as_object() {
                     for (k, v) in tech_obj {
-                        println!("Adding attribute: {} = {}", k, v);
-                        obj.insert(k.clone(), v.clone());
+                        if k != "technologies" {
+                            // Skip technologies as we've already added them
+                            println!("Adding attribute: {} = {}", k, v);
+                            obj.insert(k.clone(), v.clone());
+                        }
                     }
                 }
             }
@@ -846,6 +876,7 @@ mod end_to_end_workflow_tests {
             vuln_count,
             high_severity_vulns.len()
         );
+
         assert!(vuln_count >= 3); // At least 3 vulnerabilities
         assert!(!high_severity_vulns.is_empty()); // At least 1 high severity
 

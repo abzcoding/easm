@@ -152,7 +152,8 @@ mod tests {
             let filtered: Vec<DiscoveryJob> = jobs
                 .values()
                 .filter(|j| j.status == status)
-                .take(limit).cloned()
+                .take(limit)
+                .cloned()
                 .collect();
 
             Ok(filtered)
