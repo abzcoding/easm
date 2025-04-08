@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 
+mod hooks;
+
 #[derive(Serialize, Debug)]
 struct LoginRequest {
     email: String,
@@ -25,22 +27,19 @@ pub fn LoginPage() -> impl IntoView {
     let (error, set_error) = signal(String::new());
     let (loading, set_loading) = signal(false);
     let navigate = use_navigate();
-    let api_client = ApiClient::new("http://localhost:3000/api".to_string());
-
-    // Clone values for the first closure
-    let navigate_clone1 = navigate.clone();
-    let api_client_clone1 = api_client.clone();
+    let api_client = ApiClient::new("http://localhost:8080/api".to_string());
 
     // Check if we already have a token
+    let api_client_clone = api_client.clone();
     let check_existing_token = move || {
         // If we already have a token, redirect to dashboard
         if let Some(token) = get_auth_token() {
             // Set token in API client
-            let mut client = api_client_clone1.clone();
+            let mut client = api_client_clone.clone();
             client.set_token(token);
 
             // Navigate to dashboard
-            navigate_clone1("/dashboard", NavigateOptions::default());
+            navigate("/dashboard", NavigateOptions::default());
         }
     };
 
@@ -53,7 +52,6 @@ pub fn LoginPage() -> impl IntoView {
     let handle_submit = move |_| {
         let email_val = email.get();
         let password_val = password.get();
-        let navigate = navigate.clone();
         let client = api_client.clone();
         let set_error = set_error;
         let set_loading = set_loading;
@@ -90,7 +88,15 @@ pub fn LoginPage() -> impl IntoView {
                             client_with_token.set_token(response.token);
 
                             // Navigate to dashboard after login
-                            navigate("/dashboard", NavigateOptions::default());
+                            // Use window.location.href instead of navigate since we're in an async context
+                            if let Some(window) = web_sys::window() {
+                                if let Ok(location) = window.location().href() {
+                                    let base =
+                                        location.split('/').take(3).collect::<Vec<_>>().join("/");
+                                    let dashboard_url = format!("{}/dashboard", base);
+                                    let _ = window.location().set_href(&dashboard_url);
+                                }
+                            }
                             set_loading(false);
                         }
                         Err(e) => {
@@ -121,13 +127,6 @@ pub fn LoginPage() -> impl IntoView {
     let on_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
         handle_submit(());
-    };
-
-    let logout = move |_| {
-        // Clear auth token
-        if let Err(e) = clear_auth_token() {
-            set_error(format!("Failed to logout: {}", e));
-        }
     };
 
     view! {
@@ -179,12 +178,6 @@ pub fn LoginPage() -> impl IntoView {
                             disabled=loading
                         >
                             {move || if loading.get() { "Logging in..." } else { "Login" }}
-                        </button>
-                    </div>
-
-                    <div>
-                        <button type="button" style="width: 100%; padding: 0.85rem; border: 1px solid #6c757d; border-radius: 4px; background-color: transparent; color: #6c757d; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;" on:click=logout>
-                            "Logout"
                         </button>
                     </div>
                 </form>
